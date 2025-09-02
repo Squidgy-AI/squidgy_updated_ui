@@ -1,8 +1,8 @@
-# Fusion Starter
+# Squidgy Solar Sales Agent Setup Wizard
 
-A production-ready full-stack React application template with integrated Express server, featuring React Router 6 SPA mode, TypeScript, Vitest, Zod and modern tooling.
+A React-based setup wizard for solar sales agents, built on a production-ready full-stack template with integrated Express server, featuring React Router 6 SPA mode, TypeScript, Vitest, and modern tooling.
 
-While the starter comes with a express server, only create endpoint when strictly neccesary, for example to encapsulate logic that must leave in the server, such as private keys handling, or certain DB operations, db...
+This application guides solar sales agents through a comprehensive setup process including website analysis, business details, solar configuration, calendar integration, notifications, and Facebook integration.
 
 ## Tech Stack
 
@@ -16,37 +16,59 @@ While the starter comes with a express server, only create endpoint when strictl
 
 ```
 client/                   # React SPA frontend
-├── pages/                # Route components (Index.tsx = home)
+├── pages/                # Setup wizard pages
+│   ├── Index.tsx         # Welcome/Landing page
+│   ├── WebsiteDetails.tsx # Website analysis step
+│   ├── BusinessDetails.tsx # Business information collection
+│   ├── SolarSetup.tsx    # Solar configuration
+│   ├── CalendarSetup.tsx # Calendar integration
+│   ├── NotificationsPreferences.tsx # Notification settings
+│   ├── FacebookConnect.tsx # Facebook integration
+│   └── SetupComplete.tsx # Completion dashboard
 ├── components/ui/        # Pre-built UI component library
-├── App.tsx                # App entry point and with SPA routing setup
-└── global.css            # TailwindCSS 3 theming and global styles
+├── App.tsx              # App entry point with setup wizard routing
+└── global.css           # TailwindCSS 3 theming and global styles
 
-server/                   # Express API backend
+server/                   # Express API backend (connects to Squidgy backend)
 ├── index.ts              # Main server setup (express config + routes)
-└── routes/               # API handlers
+└── routes/               # API handlers for backend integration
 
 shared/                   # Types used by both client & server
-└── api.ts                # Example of how to share api interfaces
+└── api.ts                # Shared interfaces for setup wizard
+
+Documentation/            # Project documentation
+├── FRONTEND_BACKEND_ENDPOINT_MAPPING.md # Backend integration guide
+└── FRONTEND_CODING_STANDARDS.md         # Development standards
 ```
 
 ## Key Features
 
-## SPA Routing System
+### Solar Sales Agent Setup Wizard
+- **Progressive Setup Flow**: 8-step wizard guiding agents through complete business setup
+- **Website Analysis**: AI-powered website analysis using backend integration
+- **Business Configuration**: Contact details, services, and location setup
+- **Solar Tools Integration**: Solar insights, data layers, and reporting
+- **Calendar Integration**: Booking and scheduling configuration
+- **Notification Management**: Email, SMS, and alert preferences
+- **Facebook Integration**: Simplified Facebook pages connection
+- **Progress Tracking**: Real-time setup progress monitoring
 
-The routing system is powered by React Router 6:
+### SPA Routing System
 
-- `client/pages/Index.tsx` represents the home page.
-- Routes are defined in `client/App.tsx` using the `react-router-dom` import
-- Route files are located in the `client/pages/` directory
-
-For example, routes can be defined with:
+The setup wizard uses React Router 6 with a linear flow:
 
 ```typescript
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 <Routes>
   <Route path="/" element={<Index />} />
-  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+  <Route path="/website-details" element={<WebsiteDetails />} />
+  <Route path="/business-details" element={<BusinessDetails />} />
+  <Route path="/solar-setup" element={<SolarSetup />} />
+  <Route path="/calendar-setup" element={<CalendarSetup />} />
+  <Route path="/notifications-preferences" element={<NotificationsPreferences />} />
+  <Route path="/facebook-connect" element={<FacebookConnect />} />
+  <Route path="/setup-complete" element={<SetupComplete />} />
   <Route path="*" element={<NotFound />} />
 </Routes>;
 ```
@@ -67,15 +89,20 @@ className={cn(
 )}
 ```
 
-### Express Server Integration
+### Backend Integration
 
 - **Development**: Single port (8080) for both frontend/backend
 - **Hot reload**: Both client and server code
-- **API endpoints**: Prefixed with `/api/`
+- **API endpoints**: Prefixed with `/api/` and proxy to Squidgy backend
+- **Full Compatibility**: 28 available backend endpoints with 1 workaround
 
-#### Example API Routes
-- `GET /api/ping` - Simple ping api
-- `GET /api/demo` - Demo endpoint  
+#### Squidgy Backend Integration
+- `POST /api/website/full-analysis` - AI-powered website analysis
+- `POST /api/agents/setup` - Progressive agent setup storage
+- `GET /api/agents/setup/{user_id}/{agent_id}/progress` - Setup progress tracking
+- `POST /api/facebook/get-pages-simple` - Facebook pages integration
+- `GET /api/solar/insights` - Solar insights and reporting
+- **Full endpoint mapping**: See `FRONTEND_BACKEND_ENDPOINT_MAPPING.md`  
 
 ### Shared Types
 Import consistent types in both client and server:
@@ -97,55 +124,51 @@ pnpm typecheck  # TypeScript validation
 pnpm test          # Run Vitest tests
 ```
 
-## Adding Features
+## Documentation
 
-### Add new colors to the theme
+### 📋 [FRONTEND_BACKEND_ENDPOINT_MAPPING.md](./FRONTEND_BACKEND_ENDPOINT_MAPPING.md)
+Complete integration guide between the React frontend and Squidgy backend:
+- **28 available endpoints** with backend line references
+- **Page-to-endpoint mapping** for each setup wizard step
+- **Implementation strategy** with phased approach
+- **Code examples** for each frontend page
+- **Backend compatibility analysis** (Full compatibility achieved)
 
-Open `client/global.css` and `tailwind.config.ts` and add new tailwind colors.
+### 📋 [FRONTEND_CODING_STANDARDS.md](./FRONTEND_CODING_STANDARDS.md)
+Development standards and best practices:
+- **Component architecture** patterns and organization
+- **State management** with Zustand and React patterns
+- **TypeScript standards** for type safety
+- **API integration** patterns and error handling
+- **Testing strategies** with Vitest
+- **Performance optimization** guidelines
 
-### New API Route
-1. **Optional**: Create a shared interface in `shared/api.ts`:
-```typescript
-export interface MyRouteResponse {
-  message: string;
-  // Add other response properties here
-}
-```
+## Setup Wizard Implementation
 
-2. Create a new route handler in `server/routes/my-route.ts`:
-```typescript
-import { RequestHandler } from "express";
-import { MyRouteResponse } from "@shared/api"; // Optional: for type safety
-
-export const handleMyRoute: RequestHandler = (req, res) => {
-  const response: MyRouteResponse = {
-    message: 'Hello from my endpoint!'
-  };
-  res.json(response);
-};
-```
-
-3. Register the route in `server/index.ts`:
-```typescript
-import { handleMyRoute } from "./routes/my-route";
-
-// Add to the createServer function:
-app.get("/api/my-endpoint", handleMyRoute);
-```
-
-4. Use in React components with type safety:
-```typescript
-import { MyRouteResponse } from '@shared/api'; // Optional: for type safety
-
-const response = await fetch('/api/my-endpoint');
-const data: MyRouteResponse = await response.json();
-```
-
-### New Page Route
-1. Create component in `client/pages/MyPage.tsx`
+### Adding New Setup Steps
+1. Create component in `client/pages/NewStep.tsx`
 2. Add route in `client/App.tsx`:
 ```typescript
-<Route path="/my-page" element={<MyPage />} />
+<Route path="/new-step" element={<NewStep />} />
+```
+3. Integrate with backend using patterns from [`FRONTEND_BACKEND_ENDPOINT_MAPPING.md`](./FRONTEND_BACKEND_ENDPOINT_MAPPING.md)
+
+### Backend Integration Pattern
+```typescript
+// Example: Save setup data
+const saveSetupData = async (setupData: any) => {
+  const response = await fetch('/api/agents/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: "user123",
+      agent_id: "SOLAgent",
+      setup_data: setupData,
+      setup_type: "YourSetupType"
+    })
+  });
+  return response.json();
+};
 ```
 
 ## Production Deployment
