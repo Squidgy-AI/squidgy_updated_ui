@@ -46,29 +46,52 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        // Check authentication first
-        const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
+        // Check for development mode or Supabase configuration
+        const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
+                             !import.meta.env.VITE_SUPABASE_URL || 
+                             import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
         
-        if (authUser) {
+        if (isDevelopment) {
+          // Development mode - use localStorage data
+          let devUserId = localStorage.getItem('dev_user_id');
+          if (!devUserId) {
+            devUserId = generateUserId();
+            localStorage.setItem('dev_user_id', devUserId);
+          }
+          
           setIsAuthenticated(true);
-          setUser(authUser);
-          setProfile(userProfile);
+          setUser({ id: devUserId, email: localStorage.getItem('dev_user_email') || 'dev@example.com' });
+          setProfile({ user_id: devUserId, full_name: 'Development User' });
+          setUserIdState(devUserId);
+          localStorage.setItem('squidgy_user_id', devUserId);
           
-          // Use authenticated user's ID
-          const currentUserId = userProfile?.user_id || authUser.id;
-          setUserIdState(currentUserId);
-          localStorage.setItem('squidgy_user_id', currentUserId);
-          
-          // Generate agent ID based on user ID
-          const currentAgentId = `agent_${currentUserId}`;
+          const currentAgentId = `agent_${devUserId}`;
           setAgentIdState(currentAgentId);
         } else {
-          // Not authenticated - clear any stored data
-          setIsAuthenticated(false);
-          setUser(null);
-          setProfile(null);
-          localStorage.removeItem('squidgy_user_id');
-          localStorage.removeItem('squidgy_session_id');
+          // Production mode - try Supabase authentication
+          const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
+          
+          if (authUser) {
+            setIsAuthenticated(true);
+            setUser(authUser);
+            setProfile(userProfile);
+            
+            // Use authenticated user's ID
+            const currentUserId = userProfile?.user_id || authUser.id;
+            setUserIdState(currentUserId);
+            localStorage.setItem('squidgy_user_id', currentUserId);
+            
+            // Generate agent ID based on user ID
+            const currentAgentId = `agent_${currentUserId}`;
+            setAgentIdState(currentAgentId);
+          } else {
+            // Not authenticated - clear any stored data
+            setIsAuthenticated(false);
+            setUser(null);
+            setProfile(null);
+            localStorage.removeItem('squidgy_user_id');
+            localStorage.removeItem('squidgy_session_id');
+          }
         }
 
         // Always generate/get session ID for tracking
@@ -82,39 +105,72 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize user:', error);
-        setIsAuthenticated(false);
+        
+        // Fallback to development mode on error
+        let devUserId = localStorage.getItem('dev_user_id');
+        if (!devUserId) {
+          devUserId = generateUserId();
+          localStorage.setItem('dev_user_id', devUserId);
+        }
+        
+        setIsAuthenticated(true);
+        setUser({ id: devUserId, email: 'dev@example.com' });
+        setProfile({ user_id: devUserId, full_name: 'Development User' });
+        setUserIdState(devUserId);
+        
         setIsReady(true);
       }
     };
 
     initializeUser();
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
-        setIsAuthenticated(true);
-        setUser(authUser);
-        setProfile(userProfile);
-        
-        const currentUserId = userProfile?.user_id || authUser.id;
-        setUserIdState(currentUserId);
-        localStorage.setItem('squidgy_user_id', currentUserId);
-        
-        const currentAgentId = `agent_${currentUserId}`;
-        setAgentIdState(currentAgentId);
-      } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setUser(null);
-        setProfile(null);
-        setUserIdState('');
-        setAgentIdState('');
-        localStorage.removeItem('squidgy_user_id');
+    // Listen for auth state changes only in production mode
+    let subscription: any = null;
+    
+    const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
+                         !import.meta.env.VITE_SUPABASE_URL || 
+                         import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
+    
+    if (!isDevelopment) {
+      try {
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            try {
+              const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
+              setIsAuthenticated(true);
+              setUser(authUser);
+              setProfile(userProfile);
+              
+              const currentUserId = userProfile?.user_id || authUser?.id;
+              if (currentUserId) {
+                setUserIdState(currentUserId);
+                localStorage.setItem('squidgy_user_id', currentUserId);
+                
+                const currentAgentId = `agent_${currentUserId}`;
+                setAgentIdState(currentAgentId);
+              }
+            } catch (error) {
+              console.error('Error handling auth state change:', error);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setIsAuthenticated(false);
+            setUser(null);
+            setProfile(null);
+            setUserIdState('');
+            setAgentIdState('');
+            localStorage.removeItem('squidgy_user_id');
+          }
+        });
+        subscription = data.subscription;
+      } catch (error) {
+        console.error('Error setting up auth listener:', error);
       }
-    });
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 

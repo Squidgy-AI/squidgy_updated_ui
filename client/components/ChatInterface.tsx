@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { sendToN8nWorkflow } from "../lib/n8nService";
+import { sendToSethAgent } from "../lib/n8nService";
 
 interface Message {
   type: 'user' | 'bot';
@@ -12,6 +12,19 @@ interface ChatInterfaceProps {
   agentDescription?: string;
   context?: string;
 }
+
+/**
+ * Generate a unique user ID for demo purposes
+ * In a real application, this would come from authentication
+ */
+const generateUserId = (): string => {
+  let userId = localStorage.getItem('user_id');
+  if (!userId) {
+    userId = `user-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    localStorage.setItem('user_id', userId);
+  }
+  return userId;
+};
 
 export function ChatInterface({ 
   agentName = "Seth agent", 
@@ -42,26 +55,64 @@ export function ChatInterface({
     setIsLoading(true);
 
     try {
-      // Use n8nService like previous design
-      const sessionId = `${context}_${Date.now()}`;
-      const result = await sendToN8nWorkflow(
-        'Seth',
+      // Get user ID from development auth or generate one
+      let userId = localStorage.getItem('dev_user_id') || localStorage.getItem('user_id');
+      if (!userId) {
+        userId = generateUserId();
+      }
+      
+      // Generate session ID based on context and timestamp
+      const sessionId = `${userId}_PersonalAssistant_${Date.now()}`;
+      
+      // Use the updated N8N service with proper payload format
+      const result = await sendToSethAgent(
+        userId,
         inputMessage,
-        sessionId,
-        {
-          type: 'user_message',
-          context: context
-        }
+        sessionId
       );
 
-      console.log('N8N Service result:', result);
+      // console.log('N8N Service result:', result);
       
-      // Only add bot message if N8N returns a response
-      if (result && (result.response || result.message || result.reply)) {
-        const botContent = result.response || result.message || result.reply;
+      // Handle N8N response - check for various possible response formats
+      if (result) {
+        let botContent = null;
+        
+        // Check for different possible response properties
+        if (result.agent_response) {
+          botContent = result.agent_response;
+        } else if (result.response) {
+          botContent = result.response;
+        } else if (result.message) {
+          botContent = result.message;
+        } else if (result.reply) {
+          botContent = result.reply;
+        } else if (result.text) {
+          botContent = result.text;
+        } else if (result.content) {
+          botContent = result.content;
+        } else if (result.output) {
+          botContent = result.output;
+        } else if (typeof result === 'string') {
+          botContent = result;
+        } else {
+          // If no recognized response property, show a default message and log the structure
+          console.log('N8N response structure:', Object.keys(result));
+          botContent = 'I received your message and I\'m processing it. The response format is being configured.';
+        }
+        
+        if (botContent) {
+          const botMessage: Message = {
+            type: 'bot',
+            content: botContent,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          setMessages(prev => [...prev, botMessage]);
+        }
+      } else {
+        // No response from N8N
         const botMessage: Message = {
           type: 'bot',
-          content: botContent,
+          content: 'I\'m processing your request. Please make sure the N8N webhook is configured and running.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages(prev => [...prev, botMessage]);
