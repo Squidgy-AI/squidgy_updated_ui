@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import { analyzeWebsite, captureScreenshot, getFavicon } from "./routes/website";
+import { createSubaccountAndUser } from "./routes/ghl";
 
 export function createServer() {
   const app = express();
@@ -18,6 +20,14 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Website analysis routes
+  app.post("/api/website/full-analysis", analyzeWebsite);
+  app.post("/api/website/screenshot", captureScreenshot);
+  app.post("/api/website/favicon", getFavicon);
+
+  // GHL integration routes
+  app.post("/api/ghl/create-subaccount-and-user", createSubaccountAndUser);
 
   return app;
 }

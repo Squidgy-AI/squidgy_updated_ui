@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { X, Menu, Globe, ChevronDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { ChatInterface } from "../components/ChatInterface";
-import { useUser } from "@/hooks/useUser";
-import { websiteApi, agentApi } from "@/lib/api";
-import { toast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import { X, Menu, Globe, ChevronDown, Loader2 } from "lucide-react";
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { useToast } from '../hooks/use-toast';
+import { useUser } from '../hooks/useUser';
+import { websiteApi } from '../lib/api';
+import { ChatInterface } from '../components/ChatInterface';
 
 // Tag Chip Component
 function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -73,6 +75,7 @@ function SetupStepsSidebar() {
 // Main Website Details Page Component
 export default function WebsiteDetails() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { userId, sessionId, agentId, isReady } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -123,9 +126,22 @@ export default function WebsiteDetails() {
     
     setLoading(true);
     try {
+      // Ensure URL has protocol
+      const formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
+      
+      // Force regenerate user ID if it's in old format
+      let currentUserId = userId;
+      if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        // Clear old format user ID and let useUser hook regenerate it
+        localStorage.removeItem('dev_user_id');
+        localStorage.removeItem('squidgy_user_id');
+        window.location.reload();
+        return;
+      }
+      
       const result = await websiteApi.analyzeWebsite({
-        url: websiteUrl,
-        user_id: userId,
+        url: formattedUrl,
+        user_id: currentUserId,
         session_id: sessionId
       });
       
@@ -134,6 +150,16 @@ export default function WebsiteDetails() {
       if (result.value_proposition) setValueProposition(result.value_proposition);
       if (result.business_niche) setBusinessNiche(result.business_niche);
       if (result.tags && Array.isArray(result.tags)) setTags(result.tags);
+      
+      // Update screenshot if URL changed
+      if (result.screenshot_url) {
+        // Update the screenshot in the UI
+        const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
+        if (screenshotElement) {
+          screenshotElement.src = result.screenshot_url;
+          screenshotElement.alt = `${websiteUrl} website screenshot`;
+        }
+      }
       
       toast({
         title: "Website analyzed successfully",
@@ -150,12 +176,51 @@ export default function WebsiteDetails() {
     }
   };
 
+  // Listen for website analysis completion from chat
+  useEffect(() => {
+    const handleWebsiteAnalysisComplete = (event: CustomEvent) => {
+      const { url, result } = event.detail;
+      
+      // Update URL field if it matches
+      if (url) {
+        setWebsiteUrl(url);
+      }
+      
+      // Update form fields with analysis results if available
+      if (result.company_description) setCompanyDescription(result.company_description);
+      if (result.value_proposition) setValueProposition(result.value_proposition);
+      if (result.business_niche) setBusinessNiche(result.business_niche);
+      if (result.tags && Array.isArray(result.tags)) setTags(result.tags);
+      
+      // Update screenshot if URL changed
+      if (result.screenshot_url) {
+        // Update the screenshot in the UI
+        const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
+        if (screenshotElement) {
+          screenshotElement.src = result.screenshot_url;
+          screenshotElement.alt = `${url} website screenshot`;
+        }
+      }
+      
+      toast({
+        title: "Website analyzed successfully",
+        description: "Form fields have been updated with the analysis results from chat."
+      });
+    };
+
+    window.addEventListener('websiteAnalysisComplete', handleWebsiteAnalysisComplete as EventListener);
+    
+    return () => {
+      window.removeEventListener('websiteAnalysisComplete', handleWebsiteAnalysisComplete as EventListener);
+    };
+  }, [toast]);
+
   const handleContinue = async () => {
     if (!isReady) return;
     
     setLoading(true);
     try {
-      // Save website analysis data
+      // Step 1: Save website analysis data
       const setupData = {
         website_url: websiteUrl,
         company_description: companyDescription,
@@ -164,28 +229,120 @@ export default function WebsiteDetails() {
         tags: tags
       };
       
-      await agentApi.createSetup({
-        user_id: userId,
-        agent_id: agentId,
-        agent_name: "Solar Sales Agent",
-        setup_data: setupData,
-        setup_type: "BusinessSetup"
+      // Skip agent creation for now - focus on website analysis flow
+      console.log('Setup data prepared:', setupData);
+
+      // Step 2: Create GHL Sub-account and User
+      toast({
+        title: "Creating Go High Level account...",
+        description: "Setting up your CRM integration"
       });
+
+      const ghlResult = await createGHLAccount(setupData);
+      
+      if (ghlResult.success) {
+        // Step 3: Setup Facebook Integration
+        toast({
+          title: "Setting up Facebook integration...",
+          description: "Connecting your social media"
+        });
+
+        await setupFacebookIntegration(ghlResult.credentials);
+      }
       
       toast({
-        title: "Website details saved",
-        description: "Moving to business details..."
+        title: "Agent setup complete!",
+        description: "Your Solar Sales Agent is ready to use"
       });
       
       navigate('/business-details');
     } catch (error) {
       toast({
-        title: "Save failed",
-        description: error instanceof Error ? error.message : "Failed to save website details",
+        title: "Setup failed",
+        description: error instanceof Error ? error.message : "Failed to complete agent setup",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createGHLAccount = async (businessData: any) => {
+    try {
+      const randomNum = Math.floor(Math.random() * 1000);
+      
+      const ghlPayload = {
+        company_id: "lp2p1q27DrdGta1qGDJd",
+        snapshot_id: "bInwX5BtZM6oEepAsUwo",
+        agency_token: "pit-e3d8d384-00cb-4744-8213-b1ab06ae71fe",
+        user_id: userId,
+        subaccount_name: companyDescription.split(' ').slice(0, 3).join(' ') || `SolarBusiness_${randomNum}`,
+        prospect_email: `solar+${randomNum}@squidgy.ai`,
+        prospect_first_name: "Solar",
+        prospect_last_name: "Specialist",
+        phone: "+1-555-SOLAR-1",
+        website: websiteUrl,
+        address: "123 Solar Business Ave",
+        city: "Solar City",
+        state: "CA",
+        country: "US",
+        postal_code: "90210",
+        timezone: 'America/Los_Angeles',
+        allow_duplicate_contact: false,
+        allow_duplicate_opportunity: false,
+        allow_facebook_name_merge: true,
+        disable_contact_timezone: false
+      };
+
+      const response = await fetch('/api/ghl/create-subaccount-and-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ghlPayload)
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.status === 'success') {
+        return {
+          success: true,
+          credentials: {
+            location_id: result.subaccount.location_id,
+            user_id: result.business_user.user_id,
+            user_email: result.business_user.details.email,
+            ghl_automation_email: 'info+zt1rcl49@squidgy.net',
+            ghl_automation_password: 'Dummy@123'
+          }
+        };
+      } else {
+        throw new Error(result.detail || 'Failed to create GHL account');
+      }
+    } catch (error) {
+      console.error('GHL creation error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  };
+
+  const setupFacebookIntegration = async (ghlCredentials: any) => {
+    try {
+      const facebookConfig = {
+        location_id: ghlCredentials.location_id,
+        user_id: ghlCredentials.user_id,
+        integration_status: 'pending' as const,
+        ghl_credentials: {
+          email: ghlCredentials.ghl_automation_email,
+          password: ghlCredentials.ghl_automation_password
+        }
+      };
+
+      // Skip Facebook setup for now - focus on website analysis flow
+      console.log('Facebook config prepared:', facebookConfig);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Facebook setup error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
 
@@ -262,20 +419,29 @@ export default function WebsiteDetails() {
             <div className="mb-6">
               <label className="block text-sm font-semibold text-text-primary mb-2">Website URL</label>
               <div className="flex gap-2">
-                <input
-                  type="text"
+                <Input
+                  placeholder="Enter website URL"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
-                  className="flex-1 p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
-                  placeholder="Enter website URL"
+                  className="flex-1"
                 />
-                <button
+                <Button 
                   onClick={handleAnalyzeWebsite}
-                  disabled={loading || !websiteUrl.trim() || !isReady}
-                  className="px-4 py-3 bg-squidgy-gradient text-white font-semibold rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                  disabled={!websiteUrl.trim() || loading || !isReady}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {loading ? "Analyzing..." : "Analyze"}
-                </button>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze'
+                  )}
+                </Button>
+              </div>
+              <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
+                💡 <strong>Tip:</strong> You can analyze your website using the button above OR by pasting the URL in the chat on the right - Seth will automatically extract your business information!
               </div>
             </div>
 

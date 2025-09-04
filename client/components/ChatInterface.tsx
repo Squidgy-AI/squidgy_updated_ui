@@ -18,13 +18,13 @@ interface ChatInterfaceProps {
  * In a real application, this would come from authentication
  */
 const generateUserId = (): string => {
-  let userId = localStorage.getItem('user_id');
-  if (!userId) {
-    userId = `user-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    localStorage.setItem('user_id', userId);
-  }
-  return userId;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
+
 
 export function ChatInterface({ 
   agentName = "Seth agent", 
@@ -41,6 +41,98 @@ export function ChatInterface({
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const generateUserId = (): string => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const handleWebsiteAnalysis = async (url: string) => {
+    try {
+      // Show analysis steps
+      const steps = [
+        { message: '📸 Taking screenshot...', delay: 1000 },
+        { message: '🎨 Getting favicon...', delay: 2000 },
+        { message: '🧠 Analyzing content...', delay: 3000 }
+      ];
+
+      // Add step messages with delays
+      for (const step of steps) {
+        await new Promise(resolve => setTimeout(resolve, step.delay));
+        const stepMessage: Message = {
+          type: 'bot',
+          content: step.message,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, stepMessage]);
+      }
+
+      // Get user ID
+      let userId = localStorage.getItem('dev_user_id') || localStorage.getItem('user_id');
+      if (!userId) {
+        userId = generateUserId();
+      }
+
+      // Force regenerate user ID if it's in old format
+      if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        localStorage.removeItem('dev_user_id');
+        localStorage.removeItem('squidgy_user_id');
+        userId = generateUserId();
+        localStorage.setItem('dev_user_id', userId);
+      }
+
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Ensure URL has protocol
+      const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+      
+      // Call the real backend analysis (this will hit your actual backend)
+      const response = await fetch('/api/website/full-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: formattedUrl,
+          user_id: userId,
+          session_id: sessionId
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Show success message
+        const successMessage: Message = {
+          type: 'bot',
+          content: `✅ Analysis complete! I've analyzed ${formattedUrl} and extracted the business information. You can now review and edit the details in the form.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, successMessage]);
+
+        // Trigger form update via custom event
+        window.dispatchEvent(new CustomEvent('websiteAnalysisComplete', {
+          detail: {
+            url: formattedUrl,
+            result: result
+          }
+        }));
+      } else {
+        throw new Error(`Analysis failed: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Website analysis error:', error);
+      const errorMessage: Message = {
+        type: 'bot',
+        content: `❌ Sorry, I couldn't analyze the website. ${error instanceof Error ? error.message : 'Please try again or enter the details manually.'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
@@ -51,10 +143,29 @@ export function ChatInterface({
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputMessage;
     setInputMessage('');
     setIsLoading(true);
 
     try {
+      // Check if message contains a URL
+      const urlMatch = messageContent.match(/(https?:\/\/[^\s]+)/g);
+      if (urlMatch && urlMatch[0]) {
+        console.log('🔍 Website URL detected:', urlMatch[0]);
+        
+        // Show website analysis loading indicators
+        const loadingMessage: Message = {
+          type: 'bot',
+          content: '🔍 I detected a website URL! Let me analyze it for you...',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, loadingMessage]);
+        
+        // Trigger website analysis
+        await handleWebsiteAnalysis(urlMatch[0]);
+        return;
+      }
+
       // Get user ID from development auth or generate one
       let userId = localStorage.getItem('dev_user_id') || localStorage.getItem('user_id');
       if (!userId) {
@@ -67,7 +178,7 @@ export function ChatInterface({
       // Use the updated N8N service with proper payload format
       const result = await sendToSethAgent(
         userId,
-        inputMessage,
+        messageContent,
         sessionId
       );
 

@@ -126,7 +126,22 @@ export const apiClient = {
 // Website Analysis APIs
 export const websiteApi = {
   analyzeWebsite: async (data: { url: string; user_id: string; session_id: string }): Promise<WebsiteAnalysisResponse> => {
-    return apiClient.post<WebsiteAnalysisResponse>('/api/website/full-analysis', data);
+    try {
+      const result = await apiClient.post<WebsiteAnalysisResponse>('/api/website/full-analysis', data);
+      return result;
+    } catch (error: any) {
+      // Log the actual error for debugging
+      console.error('Website analysis API error:', error);
+      
+      // Check if it's a network/server error
+      if (error.response) {
+        throw new Error(`Analysis failed: ${error.response.data?.message || error.response.statusText}`);
+      } else if (error.request) {
+        throw new Error('Network error: Could not connect to analysis service');
+      } else {
+        throw new Error(`Analysis error: ${error.message}`);
+      }
+    }
   },
   
   captureScreenshot: async (data: { url: string; user_id: string }) => {
