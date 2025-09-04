@@ -126,7 +126,7 @@ pnpm test          # Run Vitest tests
 
 ## Documentation
 
-### 📋 [FRONTEND_BACKEND_ENDPOINT_MAPPING.md](./FRONTEND_BACKEND_ENDPOINT_MAPPING.md)
+### 📋 FRONTEND_BACKEND_ENDPOINT_MAPPING.md
 Complete integration guide between the React frontend and Squidgy backend:
 - **28 available endpoints** with backend line references
 - **Page-to-endpoint mapping** for each setup wizard step
@@ -134,7 +134,7 @@ Complete integration guide between the React frontend and Squidgy backend:
 - **Code examples** for each frontend page
 - **Backend compatibility analysis** (Full compatibility achieved)
 
-### 📋 [FRONTEND_CODING_STANDARDS.md](./FRONTEND_CODING_STANDARDS.md)
+### 📋 FRONTEND_CODING_STANDARDS.md  
 Development standards and best practices:
 - **Component architecture** patterns and organization
 - **State management** with Zustand and React patterns
@@ -151,7 +151,7 @@ Development standards and best practices:
 ```typescript
 <Route path="/new-step" element={<NewStep />} />
 ```
-3. Integrate with backend using patterns from [`FRONTEND_BACKEND_ENDPOINT_MAPPING.md`](./FRONTEND_BACKEND_ENDPOINT_MAPPING.md)
+3. Integrate with backend using patterns from `FRONTEND_BACKEND_ENDPOINT_MAPPING.md`
 
 ### Backend Integration Pattern
 ```typescript

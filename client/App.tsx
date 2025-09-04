@@ -6,7 +6,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { UserProvider } from "@/hooks/useUser";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import SetNewPassword from './pages/SetNewPassword';
 import WebsiteDetails from "./pages/WebsiteDetails";
 import BusinessDetails from "./pages/BusinessDetails";
 import SolarSetup from "./pages/SolarSetup";
@@ -20,24 +26,67 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/website-details" element={<WebsiteDetails />} />
-          <Route path="/business-details" element={<BusinessDetails />} />
-          <Route path="/solar-setup" element={<SolarSetup />} />
-          <Route path="/calendar-setup" element={<CalendarSetup />} />
-          <Route path="/notifications-preferences" element={<NotificationsPreferences />} />
-          <Route path="/facebook-connect" element={<FacebookConnect />} />
-          <Route path="/setup-complete" element={<SetupComplete />} />
+    <UserProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<SetNewPassword />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
+          <Route path="/welcome" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
+          <Route path="/website-details" element={
+            <ProtectedRoute>
+              <WebsiteDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/business-details" element={
+            <ProtectedRoute>
+              <BusinessDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/solar-setup" element={
+            <ProtectedRoute>
+              <SolarSetup />
+            </ProtectedRoute>
+          } />
+          <Route path="/calendar-setup" element={
+            <ProtectedRoute>
+              <CalendarSetup />
+            </ProtectedRoute>
+          } />
+          <Route path="/notifications-preferences" element={
+            <ProtectedRoute>
+              <NotificationsPreferences />
+            </ProtectedRoute>
+          } />
+          <Route path="/facebook-connect" element={
+            <ProtectedRoute>
+              <FacebookConnect />
+            </ProtectedRoute>
+          } />
+          <Route path="/setup-complete" element={
+            <ProtectedRoute>
+              <SetupComplete />
+            </ProtectedRoute>
+          } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </UserProvider>
   </QueryClientProvider>
 );
 
