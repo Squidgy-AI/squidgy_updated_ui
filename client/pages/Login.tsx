@@ -25,9 +25,15 @@ export default function Login() {
         console.log('Development mode login bypass');
         toast.success('Login successful! (Development mode)');
         
-        // Set development user data
-        const devUserId = `dev_user_${Date.now()}`;
-        localStorage.setItem('dev_user_id', devUserId);
+        // Use existing development user or create one if it doesn't exist
+        let devUserId = localStorage.getItem('dev_user_id');
+        if (!devUserId) {
+          // Generate a proper UUID for development user
+          devUserId = crypto.randomUUID();
+          localStorage.setItem('dev_user_id', devUserId);
+        }
+        
+        // Update email but keep the same user ID
         localStorage.setItem('dev_user_email', email);
         setUserId(devUserId);
         
@@ -52,8 +58,13 @@ export default function Login() {
       console.log('Authentication failed, falling back to development mode');
       toast.success('Login successful! (Development fallback)');
       
-      const devUserId = `dev_user_${Date.now()}`;
-      localStorage.setItem('dev_user_id', devUserId);
+      // Use existing development user or create one if it doesn't exist
+      let devUserId = localStorage.getItem('dev_user_id');
+      if (!devUserId) {
+        devUserId = crypto.randomUUID();
+        localStorage.setItem('dev_user_id', devUserId);
+      }
+      
       localStorage.setItem('dev_user_email', email);
       setUserId(devUserId);
       

@@ -22,7 +22,8 @@ interface UserContextType {
   sessionId: string;
   agentId: string;
   setUserId: (userId: string) => void;
-  clearUser: () => void;
+  clearUser: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isReady: boolean;
   isAuthenticated: boolean;
   user: any;
@@ -50,55 +51,131 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        // Check for development mode or Supabase configuration
+        console.log('UserProvider: Starting user initialization...');
+        
+        // Check if we're in development mode
         const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
                              !import.meta.env.VITE_SUPABASE_URL || 
                              import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
         
         if (isDevelopment) {
-          // Development mode - use localStorage data
+          // Development mode - create or use existing dev user
           let devUserId = localStorage.getItem('dev_user_id');
+          let devUserEmail = localStorage.getItem('dev_user_email') || 'dmacproject123@gmail.com';
+          
           if (!devUserId) {
             devUserId = generateUserId();
             localStorage.setItem('dev_user_id', devUserId);
           }
           
+          // Try to fetch profile from Supabase first
+          let profileData = null;
+          try {
+            const { supabase } = await import('../lib/supabase');
+            
+            // First try by user ID
+            let { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', devUserId)
+              .single();
+              
+            if (!data) {
+              // If not found by ID, try by email
+              const result = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('email', devUserEmail)
+                .single();
+              data = result.data;
+            }
+            
+            profileData = data;
+            console.log('UserProvider: Loaded profile from Supabase:', {
+              found_by: data ? 'database' : 'none',
+              profile_id: data?.id,
+              profile_email: data?.email,
+              profile_name: data?.full_name,
+              lookup_user_id: devUserId,
+              lookup_email: devUserEmail
+            });
+          } catch (error) {
+            console.log('UserProvider: No profile found in Supabase, using defaults:', error);
+          }
+          
+          console.log('UserProvider: Development mode - setting up dev user');
           setIsAuthenticated(true);
-          setUser({ id: devUserId, email: localStorage.getItem('dev_user_email') || 'dev@example.com' });
-          setProfile({ user_id: devUserId, full_name: 'Development User' });
+          setUser({ id: devUserId, email: devUserEmail });
+          setProfile(profileData || { 
+            id: devUserId,
+            user_id: devUserId, 
+            email: devUserEmail,
+            full_name: 'Development User',
+            profile_avatar_url: ''
+          });
           setUserIdState(devUserId);
+          setSessionIdState(`session_${devUserId}`);
+          setAgentIdState(`agent_${devUserId}`);
           localStorage.setItem('squidgy_user_id', devUserId);
           
-          const currentAgentId = `agent_${devUserId}`;
-          setAgentIdState(currentAgentId);
-        } else {
-          // Production mode - try Supabase authentication
-          const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
-          
-          if (authUser) {
-            setIsAuthenticated(true);
-            setUser(authUser);
-            setProfile(userProfile);
+          setIsReady(true);
+          return;
+        }
+        
+        // Production mode - check Supabase authentication with retry logic
+        console.log('UserProvider: Production mode - checking Supabase auth');
+        
+        let retryCount = 0;
+        const maxRetries = 3;
+        let authResult = null;
+        
+        while (retryCount < maxRetries && !authResult) {
+          try {
+            const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
             
-            // Use authenticated user's ID
-            const currentUserId = userProfile?.user_id || authUser.id;
-            setUserIdState(currentUserId);
-            localStorage.setItem('squidgy_user_id', currentUserId);
-            
-            // Generate agent ID based on user ID
-            const currentAgentId = `agent_${currentUserId}`;
-            setAgentIdState(currentAgentId);
-          } else {
-            // Not authenticated - clear any stored data
-            setIsAuthenticated(false);
-            setUser(null);
-            setProfile(null);
-            localStorage.removeItem('squidgy_user_id');
-            localStorage.removeItem('squidgy_session_id');
+            if (authUser) {
+              // Wait for profile if user exists but profile is missing
+              if (!userProfile) {
+                console.log('UserProvider: User found but profile missing, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Try to get profile again
+                const { profile: retryProfile } = await authService.getCurrentUser();
+                authResult = { user: authUser, profile: retryProfile };
+              } else {
+                authResult = { user: authUser, profile: userProfile };
+              }
+            }
+            break;
+          } catch (error) {
+            retryCount++;
+            console.log(`UserProvider: Auth check attempt ${retryCount} failed:`, error);
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
           }
         }
-
-        // Always generate/get session ID for tracking
+        
+        if (authResult?.user) {
+          console.log('UserProvider: User authenticated', { hasProfile: !!authResult.profile });
+          setIsAuthenticated(true);
+          setUser(authResult.user);
+          setProfile(authResult.profile);
+          
+          const currentUserId = authResult.profile?.user_id || authResult.user.id;
+          setUserIdState(currentUserId);
+          localStorage.setItem('squidgy_user_id', currentUserId);
+          
+          const currentAgentId = `agent_${currentUserId}`;
+          setAgentIdState(currentAgentId);
+        } else {
+          console.log('UserProvider: No authenticated user found');
+          setIsAuthenticated(false);
+          setUser(null);
+          setProfile(null);
+        }
+        
+        // Generate session ID
         let currentSessionId = localStorage.getItem('squidgy_session_id');
         if (!currentSessionId) {
           currentSessionId = generateSessionId();
@@ -110,17 +187,36 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       } catch (error) {
         console.error('Failed to initialize user:', error);
         
-        // Fallback to development mode on error
-        let devUserId = localStorage.getItem('dev_user_id');
-        if (!devUserId) {
-          devUserId = generateUserId();
-          localStorage.setItem('dev_user_id', devUserId);
-        }
+        // In production, don't fallback to dev mode - set as unauthenticated
+        const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
+                             !import.meta.env.VITE_SUPABASE_URL || 
+                             import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
         
-        setIsAuthenticated(true);
-        setUser({ id: devUserId, email: 'dev@example.com' });
-        setProfile({ user_id: devUserId, full_name: 'Development User' });
-        setUserIdState(devUserId);
+        if (isDevelopment) {
+          // Fallback to development mode only in dev environment
+          let devUserId = localStorage.getItem('dev_user_id');
+          let devUserEmail = localStorage.getItem('dev_user_email') || 'dmacproject123@gmail.com';
+          
+          if (!devUserId) {
+            devUserId = generateUserId();
+            localStorage.setItem('dev_user_id', devUserId);
+          }
+          
+          console.log('UserProvider: Fallback to development mode');
+          setIsAuthenticated(true);
+          setUser({ id: devUserId, email: devUserEmail });
+          setProfile({ user_id: devUserId, full_name: 'Development User' });
+          setUserIdState(devUserId);
+          localStorage.setItem('squidgy_user_id', devUserId);
+          
+          const currentAgentId = `agent_${devUserId}`;
+          setAgentIdState(currentAgentId);
+        } else {
+          // Production - set as unauthenticated
+          setIsAuthenticated(false);
+          setUser(null);
+          setProfile(null);
+        }
         
         setIsReady(true);
       }
@@ -134,29 +230,57 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
                          !import.meta.env.VITE_SUPABASE_URL || 
                          import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
-    
-    if (!isDevelopment) {
+        if (!isDevelopment) {
       try {
         const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('UserProvider: Auth state change:', event, !!session);
+          
           if (event === 'SIGNED_IN' && session?.user) {
             try {
-              const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
-              setIsAuthenticated(true);
-              setUser(authUser);
-              setProfile(userProfile);
+              console.log('UserProvider: User signed in, fetching profile...');
               
-              const currentUserId = userProfile?.user_id || authUser?.id;
-              if (currentUserId) {
+              // Wait a bit for profile to be created if it's a new user
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
+              
+              // If profile is missing, wait and try again
+              if (authUser && !userProfile) {
+                console.log('UserProvider: Profile missing, retrying...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const { profile: retryProfile } = await authService.getCurrentUser();
+                
+                setIsAuthenticated(true);
+                setUser(authUser);
+                setProfile(retryProfile);
+                
+                const currentUserId = retryProfile?.user_id || authUser.id;
                 setUserIdState(currentUserId);
                 localStorage.setItem('squidgy_user_id', currentUserId);
                 
                 const currentAgentId = `agent_${currentUserId}`;
                 setAgentIdState(currentAgentId);
+              } else {
+                setIsAuthenticated(true);
+                setUser(authUser);
+                setProfile(userProfile);
+                
+                const currentUserId = userProfile?.user_id || authUser?.id;
+                if (currentUserId) {
+                  setUserIdState(currentUserId);
+                  localStorage.setItem('squidgy_user_id', currentUserId);
+                  
+                  const currentAgentId = `agent_${currentUserId}`;
+                  setAgentIdState(currentAgentId);
+                }
               }
+              
+              console.log('UserProvider: Auth state updated successfully');
             } catch (error) {
               console.error('Error handling auth state change:', error);
             }
           } else if (event === 'SIGNED_OUT') {
+            console.log('UserProvider: User signed out');
             setIsAuthenticated(false);
             setUser(null);
             setProfile(null);
@@ -179,12 +303,38 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   }, []);
 
   const setUserId = (newUserId: string) => {
+    console.log('UserProvider: setUserId called with:', newUserId);
+    
+    // Don't update if it's the same user ID to prevent unnecessary re-renders
+    if (newUserId === userId) {
+      console.log('UserProvider: Same user ID, skipping update');
+      return;
+    }
+    
     setUserIdState(newUserId);
     localStorage.setItem('squidgy_user_id', newUserId);
     
-    // Update agent ID when user ID changes
     const newAgentId = `agent_${newUserId}`;
     setAgentIdState(newAgentId);
+    
+    // Update authentication state for development users
+    const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
+                         !import.meta.env.VITE_SUPABASE_URL || 
+                         import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
+    
+    if (isDevelopment && newUserId) {
+      const devUserEmail = localStorage.getItem('dev_user_email') || 'dmacproject123@gmail.com';
+      const devUserName = localStorage.getItem('dev_user_name') || 'Development User';
+      const devUserAvatar = localStorage.getItem('dev_user_avatar') || '';
+      console.log('UserProvider: Updating auth state for dev user with localStorage data');
+      setIsAuthenticated(true);
+      setUser({ id: newUserId, email: devUserEmail });
+      setProfile({ 
+        user_id: newUserId, 
+        full_name: devUserName,
+        profile_avatar_url: devUserAvatar
+      });
+    }
   };
 
   const clearUser = async () => {
@@ -202,21 +352,62 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     setProfile(null);
     localStorage.removeItem('squidgy_user_id');
     localStorage.removeItem('squidgy_session_id');
-    setIsReady(false);
+    localStorage.removeItem('dev_user_id');
+    localStorage.removeItem('dev_user_email');
+    setIsReady(true); // Keep ready state true to prevent re-initialization
+  };
+
+  // Add refresh function to reload profile from database
+  const refreshProfile = async () => {
+    if (!userId) return;
+    
+    try {
+      const { supabase } = await import('../lib/supabase');
+      
+      // Try to fetch updated profile from database
+      let { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (!data) {
+        // If not found by ID, try by email
+        const userEmail = user?.email || localStorage.getItem('dev_user_email');
+        if (userEmail) {
+          const result = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', userEmail)
+            .single();
+          data = result.data;
+        }
+      }
+      
+      if (data) {
+        console.log('UserProvider: Profile refreshed from database:', data);
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('UserProvider: Failed to refresh profile:', error);
+    }
+  };
+
+  const value = {
+    isAuthenticated,
+    isReady,
+    user,
+    profile,
+    userId,
+    sessionId,
+    agentId,
+    setUserId,
+    clearUser,
+    refreshProfile
   };
 
   return (
-    <UserContext.Provider value={{ 
-      userId, 
-      sessionId, 
-      agentId, 
-      setUserId, 
-      clearUser, 
-      isReady,
-      isAuthenticated,
-      user,
-      profile
-    }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

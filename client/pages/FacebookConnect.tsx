@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { X, Menu, Facebook, Check, Edit } from "lucide-react";
+import { X, Menu, Facebook, HelpCircle, Check, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
+import { UserAccountDropdown } from "../components/UserAccountDropdown";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -98,7 +99,7 @@ function LoadingIcon() {
 export default function FacebookConnect() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'selection' | 'instructions' | 'confirmation'>('selection');
+  const [currentStep, setCurrentStep] = useState<'selection' | 'instructions' | 'confirmation'>('confirmation');
   const [selectedPages, setSelectedPages] = useState<string[]>(['RMS Energy Ltd.']);
   const [loginConfirmed, setLoginConfirmed] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,13 +126,13 @@ export default function FacebookConnect() {
 
   const handleConnectFinish = () => {
     if (currentStep === 'selection') {
-      setCurrentStep('instructions');
-    } else if (currentStep === 'confirmation' && loginConfirmed === true) {
       setIsLoading(true);
-      // Simulate completion
+      // Navigate to setup complete after connecting pages
       setTimeout(() => {
         navigate('/setup-complete');
       }, 2000);
+    } else if (currentStep === 'confirmation' && loginConfirmed === true) {
+      setCurrentStep('selection');
     }
   };
 
@@ -139,6 +140,11 @@ export default function FacebookConnect() {
     if (loginConfirmed === true) {
       setCurrentStep('selection');
     }
+  };
+
+  const handleBackToConnect = () => {
+    setCurrentStep('confirmation');
+    setLoginConfirmed(null);
   };
 
   return (
@@ -158,6 +164,7 @@ export default function FacebookConnect() {
             alt="Squidgy Logo" 
             className="h-8"
           />
+          <UserAccountDropdown />
         </div>
         <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
           Close (save draft)
@@ -252,13 +259,21 @@ export default function FacebookConnect() {
                   </div>
                 </div>
 
-                {/* Connect Button */}
-                <button 
-                  onClick={handleConnectFinish}
-                  className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity leading-6"
-                >
-                  Connect & Finish
-                </button>
+                {/* Back and Connect Button */}
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleBackToConnect}
+                    className="flex-1 bg-white text-text-primary font-bold text-sm py-3 px-5 rounded-button border border-grey-500T hover:bg-gray-50 transition-colors leading-6"
+                  >
+                    Back
+                  </button>
+                  <button 
+                    onClick={handleConnectFinish}
+                    className="flex-1 bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity leading-6"
+                  >
+                    Connect & Finish
+                  </button>
+                </div>
               </>
             )}
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { X, Menu, Calendar, Clock, ChevronDown } from "lucide-react";
+import { X, Menu, Calendar, HelpCircle, Clock, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
+import { UserAccountDropdown } from "../components/UserAccountDropdown";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -186,6 +187,7 @@ export default function CalendarSetup() {
             <span className="text-white text-xs font-bold">S</span>
           </div>
           <span className="font-bold text-lg text-text-primary">Squidgy</span>
+          <UserAccountDropdown />
         </div>
         <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
           Close (save draft)

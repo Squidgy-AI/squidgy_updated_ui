@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Menu, CheckCircle, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
-
+import { UserAccountDropdown } from "../components/UserAccountDropdown";
 
 // Check Icon Component
 function CheckIcon() {
@@ -48,6 +48,7 @@ export default function SetupComplete() {
             alt="Squidgy Logo" 
             className="h-8"
           />
+          <UserAccountDropdown />
         </div>
         <button 
           onClick={handleClose}

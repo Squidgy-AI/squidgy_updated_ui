@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { X, Menu, Building, Trash2, Plus, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { X, Menu, Building2, Building, HelpCircle, Trash2, Plus, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
+import { UserAccountDropdown } from "../components/UserAccountDropdown";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -110,6 +111,7 @@ export default function BusinessDetails() {
             <span className="text-white text-xs font-bold">S</span>
           </div>
           <span className="font-bold text-lg text-text-primary">Squidgy</span>
+          <UserAccountDropdown />
         </div>
         <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
           Close (save draft)

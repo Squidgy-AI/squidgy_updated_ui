@@ -7,6 +7,7 @@ import { useToast } from '../hooks/use-toast';
 import { useUser } from '../hooks/useUser';
 import { websiteApi } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
+import { UserAccountDropdown } from '../components/UserAccountDropdown';
 
 // Tag Chip Component
 function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -362,6 +363,7 @@ export default function WebsiteDetails() {
             <span className="text-white text-xs font-bold">S</span>
           </div>
           <span className="font-bold text-lg text-text-primary">Squidgy</span>
+          <UserAccountDropdown />
         </div>
         <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
           Close (save draft)

@@ -20,6 +20,7 @@ import CalendarSetup from "./pages/CalendarSetup";
 import NotificationsPreferences from "./pages/NotificationsPreferences";
 import FacebookConnect from "./pages/FacebookConnect";
 import SetupComplete from "./pages/SetupComplete";
+import AccountSettings from "./pages/AccountSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,11 @@ const App = () => (
           <Route path="/setup-complete" element={
             <ProtectedRoute>
               <SetupComplete />
+            </ProtectedRoute>
+          } />
+          <Route path="/account-settings" element={
+            <ProtectedRoute>
+              <AccountSettings />
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
