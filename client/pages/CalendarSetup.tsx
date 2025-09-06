@@ -11,10 +11,12 @@ import { toast } from "sonner";
 
 
 // Business Hours Component
-function BusinessHours({ businessHours, setBusinessHours }: {
+function BusinessHours({ businessHours, setBusinessHours, onValidationChange }: {
   businessHours: Record<string, { enabled: boolean; start: string; end: string }>;
   setBusinessHours: (hours: Record<string, { enabled: boolean; start: string; end: string }>) => void;
+  onValidationChange?: (isValid: boolean) => void;
 }) {
+  const [timeErrors, setTimeErrors] = useState<Record<string, string>>({});
 
   const toggleDay = (day: string) => {
     setBusinessHours(prev => ({
@@ -24,9 +26,53 @@ function BusinessHours({ businessHours, setBusinessHours }: {
         enabled: !prev[day as keyof typeof prev].enabled
       }
     }));
+    // Clear error when disabling
+    if (businessHours[day as keyof typeof businessHours].enabled) {
+      setTimeErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[day];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateTimeRange = (startTime: string, endTime: string): boolean => {
+    if (!startTime || !endTime) return true; // Don't validate empty times
+    
+    // Convert time strings to comparable numbers (e.g., "09:00" -> 900, "17:00" -> 1700)
+    const timeToNumber = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 100 + minutes;
+    };
+    
+    return timeToNumber(startTime) < timeToNumber(endTime);
   };
 
   const updateTime = (day: string, field: 'start' | 'end', value: string) => {
+    const currentDay = businessHours[day as keyof typeof businessHours];
+    const newStart = field === 'start' ? value : currentDay.start;
+    const newEnd = field === 'end' ? value : currentDay.end;
+    
+    // Validate the time range
+    const isValid = validateTimeRange(newStart, newEnd);
+    
+    let newErrors = { ...timeErrors };
+    
+    if (!isValid) {
+      newErrors[day] = 'End time must be after start time';
+    } else {
+      // Clear error if valid
+      delete newErrors[day];
+    }
+    
+    setTimeErrors(newErrors);
+    
+    // Notify parent about validation state
+    if (onValidationChange) {
+      onValidationChange(Object.keys(newErrors).length === 0);
+    }
+    
+    // Update the time regardless (let user see what they typed)
     setBusinessHours(prev => ({
       ...prev,
       [day]: {
@@ -45,6 +91,16 @@ function BusinessHours({ businessHours, setBusinessHours }: {
     { key: 'saturday', label: 'Saturday' },
     { key: 'sunday', label: 'Sunday' },
   ];
+  
+  // Format time for display (e.g., "09:00" -> "9:00 AM")
+  const formatTimeDisplay = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${period}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -57,37 +113,58 @@ function BusinessHours({ businessHours, setBusinessHours }: {
               onChange={() => toggleDay(key)}
               className="w-5 h-5 text-squidgy-purple border-gray-300 rounded focus:ring-squidgy-purple"
             />
-            <span className="text-text-primary font-medium">{label}</span>
+            <span className="text-text-primary font-medium flex-1">{label}</span>
+            {businessHours[key as keyof typeof businessHours].enabled && 
+             businessHours[key as keyof typeof businessHours].start && 
+             businessHours[key as keyof typeof businessHours].end && (
+              <span className="text-xs text-gray-500">
+                {formatTimeDisplay(businessHours[key as keyof typeof businessHours].start)} - {formatTimeDisplay(businessHours[key as keyof typeof businessHours].end)}
+              </span>
+            )}
           </label>
           
           {businessHours[key as keyof typeof businessHours].enabled && (
-            <div className="ml-8 flex items-center gap-4">
-              <div className="flex-1">
-                <label className="block text-sm text-text-secondary mb-1">Starts</label>
-                <div className="relative">
-                  <input
-                    type="time"
-                    value={businessHours[key as keyof typeof businessHours].start}
-                    onChange={(e) => updateTime(key, 'start', e.target.value)}
-                    className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
-                  />
-                  <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <>
+              <div className="ml-8 flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm text-text-secondary mb-1">Starts</label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={businessHours[key as keyof typeof businessHours].start}
+                      onChange={(e) => updateTime(key, 'start', e.target.value)}
+                      className={`w-full p-3 pr-10 border rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent ${
+                        timeErrors[key] ? 'border-red-500' : 'border-grey-500'
+                      }`}
+                    />
+                    <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <label className="block text-sm text-text-secondary mb-1">Ends</label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={businessHours[key as keyof typeof businessHours].end}
+                      onChange={(e) => updateTime(key, 'end', e.target.value)}
+                      className={`w-full p-3 pr-10 border rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent ${
+                        timeErrors[key] ? 'border-red-500' : 'border-grey-500'
+                      }`}
+                    />
+                    <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex-1">
-                <label className="block text-sm text-text-secondary mb-1">Ends</label>
-                <div className="relative">
-                  <input
-                    type="time"
-                    value={businessHours[key as keyof typeof businessHours].end}
-                    onChange={(e) => updateTime(key, 'end', e.target.value)}
-                    className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
-                  />
-                  <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              {timeErrors[key] && (
+                <div className="ml-8 mt-1 text-red-500 text-xs flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {timeErrors[key]}
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       ))}
@@ -101,6 +178,7 @@ export default function CalendarSetup() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasTimeErrors, setHasTimeErrors] = useState(false);
   
   // Form state
   const [calendarName, setCalendarName] = useState('Solar consultations');
@@ -125,6 +203,11 @@ export default function CalendarSetup() {
   const handleContinue = async () => {
     if (!user?.id) {
       toast.error('Please log in to continue');
+      return;
+    }
+
+    if (hasTimeErrors) {
+      toast.error('Please fix the time errors before continuing');
       return;
     }
 
@@ -342,17 +425,22 @@ export default function CalendarSetup() {
             {/* Business Hours */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-text-primary mb-4">Business hours</h3>
-              <BusinessHours businessHours={businessHours} setBusinessHours={setBusinessHours} />
+              <BusinessHours 
+                businessHours={businessHours} 
+                setBusinessHours={setBusinessHours}
+                onValidationChange={(isValid) => setHasTimeErrors(!isValid)}
+              />
             </div>
 
             {/* Continue Button */}
             <button 
               onClick={handleContinue}
-              disabled={isLoading}
+              disabled={isLoading || hasTimeErrors}
               className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={hasTimeErrors ? 'Please fix time errors before continuing' : ''}
             >
-              {isLoading ? 'Saving...' : 'Continue'}
-              {!isLoading && (
+              {isLoading ? 'Saving...' : hasTimeErrors ? 'Fix Time Errors to Continue' : 'Continue'}
+              {!isLoading && !hasTimeErrors && (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
                 </svg>
