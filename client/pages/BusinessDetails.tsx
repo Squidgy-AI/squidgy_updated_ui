@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
+import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { saveBusinessDetails } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { useToast } from "../hooks/use-toast";
@@ -18,17 +19,29 @@ export default function BusinessDetails() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [emergencyNumbers, setEmergencyNumbers] = useState(['888-683-3631']);
-  const [addressMethod, setAddressMethod] = useState('manual'); // 'lookup' or 'manual'
+  const [addressMethod, setAddressMethod] = useState('lookup'); // 'lookup' or 'manual'
   
   // Form state variables
   const [businessName, setBusinessName] = useState('RMS Energy Ltd.');
   const [businessEmail, setBusinessEmail] = useState('info@rmsenergy.com');
   const [phoneNumber, setPhoneNumber] = useState('888-683-3630');
   const [country, setCountry] = useState('US');
-  const [address, setAddress] = useState('15396 183rd St Little Falls, MN 56345');
-  const [city, setCity] = useState('Little Falls');
-  const [state, setState] = useState('Minnesota');
-  const [postalCode, setPostalCode] = useState('56345');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  
+  // Handle address method change - clear fields when switching
+  const handleAddressMethodChange = (method: string) => {
+    setAddressMethod(method);
+    if (method === 'lookup') {
+      // Clear fields when switching to lookup mode
+      setAddress('');
+      setCity('');
+      setState('');
+      setPostalCode('');
+    }
+  };
 
   const addEmergencyNumber = () => {
     setEmergencyNumbers([...emergencyNumbers, '']);
@@ -256,7 +269,7 @@ export default function BusinessDetails() {
                     name="addressMethod"
                     value="lookup"
                     checked={addressMethod === 'lookup'}
-                    onChange={(e) => setAddressMethod(e.target.value)}
+                    onChange={(e) => handleAddressMethodChange(e.target.value)}
                     className="w-4 h-4 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
                   />
                   <span className="text-text-primary text-sm">Address lookup</span>
@@ -267,23 +280,46 @@ export default function BusinessDetails() {
                     name="addressMethod"
                     value="manual"
                     checked={addressMethod === 'manual'}
-                    onChange={(e) => setAddressMethod(e.target.value)}
+                    onChange={(e) => handleAddressMethodChange(e.target.value)}
                     className="w-4 h-4 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
                   />
                   <span className="text-text-primary text-sm">Add manually</span>
                 </label>
               </div>
+              {addressMethod === 'lookup' && (
+                <p className="text-xs text-gray-500 italic">
+                  Start typing your address and select from suggestions. City, state, and postal code will be filled automatically.
+                </p>
+              )}
             </div>
 
             {/* Address Fields */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-text-primary mb-2">Address</label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
-              />
+              {addressMethod === 'lookup' ? (
+                <AddressAutocomplete
+                  value={address}
+                  onChange={setAddress}
+                  onAddressSelect={(addressData) => {
+                    // Auto-fill the city, state, and postal code
+                    if (addressData.city) setCity(addressData.city);
+                    if (addressData.state) setState(addressData.state);
+                    if (addressData.postal_code) setPostalCode(addressData.postal_code);
+                    // Set the full address
+                    setAddress(`${addressData.street_number} ${addressData.street_name}`);
+                  }}
+                  country={country}
+                  placeholder="Start typing your address..."
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
+                  placeholder="Enter your address"
+                />
+              )}
             </div>
 
             {/* City */}
@@ -293,7 +329,11 @@ export default function BusinessDetails() {
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
+                className={`w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent ${
+                  addressMethod === 'lookup' && city ? 'bg-green-50 border-green-300' : ''
+                }`}
+                placeholder={addressMethod === 'lookup' ? 'Will be auto-filled' : 'Enter city'}
+                readOnly={addressMethod === 'lookup'}
               />
             </div>
 
@@ -304,7 +344,11 @@ export default function BusinessDetails() {
                 type="text"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
+                className={`w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent ${
+                  addressMethod === 'lookup' && state ? 'bg-green-50 border-green-300' : ''
+                }`}
+                placeholder={addressMethod === 'lookup' ? 'Will be auto-filled' : 'Enter state'}
+                readOnly={addressMethod === 'lookup'}
               />
             </div>
 
@@ -315,7 +359,11 @@ export default function BusinessDetails() {
                 type="text"
                 value={postalCode}
                 onChange={(e) => setPostalCode(e.target.value)}
-                className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
+                className={`w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent ${
+                  addressMethod === 'lookup' && postalCode ? 'bg-green-50 border-green-300' : ''
+                }`}
+                placeholder={addressMethod === 'lookup' ? 'Will be auto-filled' : 'Enter postal code'}
+                readOnly={addressMethod === 'lookup'}
               />
             </div>
 
