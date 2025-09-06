@@ -458,6 +458,107 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
   }
 };
 
+// Notification Preferences API
+interface NotificationPreferencesData {
+  firm_user_id: string;
+  agent_id: string;
+  email_enabled: boolean;
+  messenger_enabled: boolean;
+  sms_enabled: boolean;
+  whatsapp_enabled: boolean;
+  ghl_enabled: boolean;
+  notification_email: string;
+  appointment_confirmations: boolean;
+  appointment_reminders: boolean;
+  cancellations_reschedules: boolean;
+  setup_status?: string;
+}
+
+export const saveNotificationPreferences = async (data: NotificationPreferencesData): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    console.log('🔍 Debugging notification preferences save:', {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id,
+      notification_email: data.notification_email,
+      email_enabled: data.email_enabled
+    });
+    
+    // First, let's check if this user exists in profiles table (same logic as other saves)
+    const { data: profileCheck, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('user_id', data.firm_user_id)
+      .single();
+    
+    if (profileError || !profileCheck) {
+      console.error('Profile not found for user_id:', data.firm_user_id, profileError);
+      
+      // Try checking by id instead
+      const { data: profileById, error: profileByIdError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email')
+        .eq('id', data.firm_user_id)
+        .single();
+        
+      if (profileByIdError || !profileById) {
+        console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
+        throw new Error('User profile not found. Please ensure you are logged in properly.');
+      } else {
+        console.log('✅ Found profile by id:', profileById);
+        // Use the user_id from the found profile
+        data.firm_user_id = profileById.user_id;
+      }
+    } else {
+      console.log('✅ Found profile by user_id:', profileCheck);
+    }
+    
+    // Prepare data for database insert
+    const insertData = {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id || 'SOL',
+      email_enabled: data.email_enabled,
+      messenger_enabled: data.messenger_enabled,
+      sms_enabled: data.sms_enabled,
+      whatsapp_enabled: data.whatsapp_enabled,
+      ghl_enabled: data.ghl_enabled,
+      notification_email: data.notification_email,
+      appointment_confirmations: data.appointment_confirmations,
+      appointment_reminders: data.appointment_reminders,
+      cancellations_reschedules: data.cancellations_reschedules,
+      setup_status: data.setup_status || 'completed'
+    };
+
+    console.log('📝 Final notification preferences insert data:', insertData);
+
+    // Use upsert to insert or update if record already exists
+    const { data: result, error } = await supabase
+      .from('notification_preferences')
+      .upsert(insertData, {
+        onConflict: 'firm_user_id,agent_id',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase notification preferences upsert error:', error);
+      throw new Error(`Failed to save notification preferences: ${error.message}`);
+    }
+
+    console.log('✅ Notification preferences saved successfully:', result);
+
+    return {
+      success: true,
+      message: 'Notification preferences saved successfully'
+    };
+  } catch (error) {
+    console.error('Save notification preferences error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save notification preferences');
+  }
+};
+
 // Facebook Integration APIs
 export const facebookApi = {
   connectFacebook: async (data: {

@@ -3,6 +3,9 @@ import { X, Menu, Bell, HelpCircle, Mail, MessageCircle, MessageSquare, Smartpho
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { useUser } from "../hooks/useUser";
+import { saveNotificationPreferences } from "../lib/api";
+import { toast } from "sonner";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -133,6 +136,10 @@ function NotificationChannel({
 export default function NotificationsPreferences() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form state
   const [notificationChannels, setNotificationChannels] = useState({
     email: true,
     messenger: true,
@@ -140,6 +147,7 @@ export default function NotificationsPreferences() {
     whatsapp: false,
     ghl: false,
   });
+  const [notificationEmail, setNotificationEmail] = useState('info@rmsenergy.com');
   const [notificationTypes, setNotificationTypes] = useState({
     confirmations: true,
     reminders: true,
@@ -160,8 +168,44 @@ export default function NotificationsPreferences() {
     }));
   };
 
-  const handleContinue = () => {
-    navigate('/facebook-connect');
+  const handleContinue = async () => {
+    if (!user?.id) {
+      toast.error('Please log in to continue');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const notificationPreferencesData = {
+        firm_user_id: user.id,
+        agent_id: 'SOL',
+        email_enabled: notificationChannels.email,
+        messenger_enabled: notificationChannels.messenger,
+        sms_enabled: notificationChannels.sms,
+        whatsapp_enabled: notificationChannels.whatsapp,
+        ghl_enabled: notificationChannels.ghl,
+        notification_email: notificationEmail,
+        appointment_confirmations: notificationTypes.confirmations,
+        appointment_reminders: notificationTypes.reminders,
+        cancellations_reschedules: notificationTypes.cancellations,
+        setup_status: 'completed'
+      };
+
+      const result = await saveNotificationPreferences(notificationPreferencesData);
+      
+      if (result.success) {
+        toast.success('Notification preferences saved successfully!');
+        navigate('/facebook-connect');
+      } else {
+        toast.error('Failed to save notification preferences');
+      }
+    } catch (error: any) {
+      console.error('Notification preferences save error:', error);
+      toast.error(error.message || 'Failed to save notification preferences');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -283,7 +327,8 @@ export default function NotificationsPreferences() {
               <div className="relative">
                 <input
                   type="email"
-                  defaultValue="info@rmsenergy.com"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
                   className="w-full p-3 pl-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                 />
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -329,12 +374,15 @@ export default function NotificationsPreferences() {
             {/* Continue Button */}
             <button 
               onClick={handleContinue}
-              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
-              </svg>
+              {isLoading ? 'Saving...' : 'Continue'}
+              {!isLoading && (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
