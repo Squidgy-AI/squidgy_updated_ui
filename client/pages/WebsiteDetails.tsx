@@ -48,10 +48,8 @@ export default function WebsiteDetails() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (userId && !dataLoaded) {
-        // Get the correct user_id from profiles table for loading data
-        const profileUserId = await getProfileUserId(userId);
-        
-        const existingData = await getWebsiteAnalysis(profileUserId);
+        console.log('🔍 WebsiteDetails: Using userId directly:', userId);
+        const existingData = await getWebsiteAnalysis(userId);
         console.log('🔍 WebsiteDetails: Loaded existing data:', existingData);
         
         if (existingData) {
@@ -304,8 +302,8 @@ export default function WebsiteDetails() {
     
     setLoading(true);
     try {
-      // Step 1: Get the correct user_id from profiles table
-      const profileUserId = await getProfileUserId(userId);
+      // Step 1: Use userId directly as firm_user_id
+      console.log('🔍 WebsiteDetails Save: Using userId directly:', userId);
       
       // Step 2: Save website analysis data to database
       toast({
@@ -314,7 +312,7 @@ export default function WebsiteDetails() {
       });
 
       const websiteAnalysisData = {
-        firm_user_id: profileUserId, // Use the correct user_id from profiles table
+        firm_user_id: userId, // Use userId directly as firm_user_id
         agent_id: 'SOL',
         website_url: websiteUrl.startsWith('http') ? websiteUrl : `https://www.${websiteUrl}`,
         company_description: companyDescription.trim() || null,

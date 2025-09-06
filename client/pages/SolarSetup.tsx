@@ -60,8 +60,8 @@ export default function SolarSetup() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const profileUserId = await getProfileUserId(user.id);
-        const existingData = await getSolarSetup(profileUserId);
+        console.log('🔍 SolarSetup: Using user.id directly:', user.id);
+        const existingData = await getSolarSetup(user.id);
         if (existingData) {
           setInstallationPrice(existingData.installation_price || 0);
           setDealerFee(existingData.dealer_fee || 0);
@@ -107,9 +107,9 @@ export default function SolarSetup() {
     setIsLoading(true);
     
     try {
-      const profileUserId = await getProfileUserId(user.id);
+      console.log('🔍 SolarSetup Save: Using user.id directly:', user.id);
       const solarSetupData = {
-        firm_user_id: profileUserId,
+        firm_user_id: user.id,
         agent_id: 'SOL',
         installation_price: installationPrice,
         dealer_fee: dealerFee,

@@ -205,8 +205,8 @@ export default function CalendarSetup() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const profileUserId = await getProfileUserId(user.id);
-        const existingData = await getCalendarSetup(profileUserId);
+        console.log('🔍 CalendarSetup: Using user.id directly:', user.id);
+        const existingData = await getCalendarSetup(user.id);
         if (existingData) {
           setCalendarName(existingData.calendar_name || "");
           setDescription(existingData.description || "");
@@ -250,9 +250,9 @@ export default function CalendarSetup() {
     setIsLoading(true);
     
     try {
-      const profileUserId = await getProfileUserId(user.id);
+      console.log('🔍 CalendarSetup Save: Using user.id directly:', user.id);
       const calendarSetupData = {
-        firm_user_id: profileUserId,
+        firm_user_id: user.id,
         agent_id: 'SOL',
         calendar_name: calendarName,
         description: description,

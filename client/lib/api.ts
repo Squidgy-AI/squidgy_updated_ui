@@ -649,14 +649,13 @@ export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
+    console.log('🔍 getWebsiteAnalysis: Using userId directly as firm_user_id:', userId);
     
-    // Use firm_user_id field for website_analysis table
+    // Use firm_user_id field for website_analysis table  
     let { data, error } = await supabase
       .from('website_analysis')
       .select('*')
-      .eq('firm_user_id', profileUserId)
+      .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
     
@@ -677,13 +676,12 @@ export const getBusinessDetails = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
+    console.log('🔍 getBusinessDetails: Using userId directly as firm_user_id:', userId);
     
     let { data, error } = await supabase
       .from('business_details')
       .select('*')
-      .eq('firm_user_id', profileUserId)
+      .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
       
@@ -704,13 +702,12 @@ export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Pr
   try {
     const { supabase } = await import('./supabase');
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
+    console.log('🔍 getSolarSetup: Using userId directly as firm_user_id:', userId);
     
     let { data, error } = await supabase
       .from('solar_setup')
       .select('*')
-      .eq('firm_user_id', profileUserId)
+      .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
       
@@ -731,13 +728,12 @@ export const getCalendarSetup = async (userId: string, agentId: string = 'SOL'):
   try {
     const { supabase } = await import('./supabase');
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
+    console.log('🔍 getCalendarSetup: Using userId directly as firm_user_id:', userId);
     
     let { data, error } = await supabase
       .from('calendar_setup')
       .select('*')
-      .eq('firm_user_id', profileUserId)
+      .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
       
@@ -758,13 +754,12 @@ export const getNotificationPreferences = async (userId: string, agentId: string
   try {
     const { supabase } = await import('./supabase');
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
+    console.log('🔍 getNotificationPreferences: Using userId directly as firm_user_id:', userId);
     
     let { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
-      .eq('firm_user_id', profileUserId)
+      .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
       
@@ -822,15 +817,13 @@ export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'):
   try {
     console.log('🔍 checkSetupStatus: Checking status for userId:', userId, 'agentId:', agentId);
     
-    // Get the correct user_id from profiles table
-    const profileUserId = await getProfileUserId(userId);
-    
+    // Use userId directly as firm_user_id in all 5 tables
     const [website, business, solar, calendar, notifications] = await Promise.all([
-      getWebsiteAnalysis(profileUserId, agentId),
-      getBusinessDetails(profileUserId, agentId),
-      getSolarSetup(profileUserId, agentId),
-      getCalendarSetup(profileUserId, agentId),
-      getNotificationPreferences(profileUserId, agentId)
+      getWebsiteAnalysis(userId, agentId),
+      getBusinessDetails(userId, agentId),
+      getSolarSetup(userId, agentId),
+      getCalendarSetup(userId, agentId),
+      getNotificationPreferences(userId, agentId)
     ]);
     
     console.log('🔍 checkSetupStatus: Raw data:', {

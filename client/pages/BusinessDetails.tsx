@@ -36,8 +36,8 @@ export default function BusinessDetails() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (userId && !dataLoaded) {
-        const profileUserId = await getProfileUserId(userId);
-        const existingData = await getBusinessDetails(profileUserId);
+        console.log('🔍 BusinessDetails: Using userId directly:', userId);
+        const existingData = await getBusinessDetails(userId);
         if (existingData) {
           setBusinessName(existingData.business_name || "");
           setBusinessEmail(existingData.business_email || "");
@@ -97,8 +97,8 @@ export default function BusinessDetails() {
     
     setLoading(true);
     try {
-      // Get the correct user_id from profiles table
-      const profileUserId = await getProfileUserId(userId);
+      // Use userId directly as firm_user_id
+      console.log('🔍 BusinessDetails Save: Using userId directly:', userId);
       
       // Save business details data to database
       toast({
@@ -107,7 +107,7 @@ export default function BusinessDetails() {
       });
 
       const businessDetailsData = {
-        firm_user_id: profileUserId, // Use the correct user_id from profiles table
+        firm_user_id: userId, // Use userId directly as firm_user_id
         agent_id: 'SOL',
         business_name: businessName.trim(),
         business_email: businessEmail.trim(),

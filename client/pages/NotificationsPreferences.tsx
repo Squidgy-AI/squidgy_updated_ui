@@ -98,8 +98,8 @@ export default function NotificationsPreferences() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const profileUserId = await getProfileUserId(user.id);
-        const existingData = await getNotificationPreferences(profileUserId);
+        console.log('🔍 NotificationsPreferences: Using user.id directly:', user.id);
+        const existingData = await getNotificationPreferences(user.id);
         if (existingData) {
           if (existingData.notification_channels) {
             setNotificationChannels(existingData.notification_channels);
@@ -155,9 +155,9 @@ export default function NotificationsPreferences() {
     setIsLoading(true);
     
     try {
-      const profileUserId = await getProfileUserId(user.id);
+      console.log('🔍 NotificationsPreferences Save: Using user.id directly:', user.id);
       const notificationPreferencesData = {
-        firm_user_id: profileUserId,
+        firm_user_id: user.id,
         agent_id: 'SOL',
         email_enabled: notificationChannels.email,
         messenger_enabled: notificationChannels.messenger,
