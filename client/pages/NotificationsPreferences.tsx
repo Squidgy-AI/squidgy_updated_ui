@@ -100,14 +100,42 @@ export default function NotificationsPreferences() {
       if (userId && !dataLoaded) {
         console.log('🔍 NotificationsPreferences: Using userId from hook:', userId);
         const existingData = await getNotificationPreferences(userId);
+        console.log('🔍 NotificationsPreferences: Raw existing data:', existingData);
+        
         if (existingData) {
-          if (existingData.notification_channels) {
-            setNotificationChannels(existingData.notification_channels);
-          }
+          // Map notification channels from database fields
+          setNotificationChannels({
+            email: existingData.email_enabled || false,
+            messenger: existingData.messenger_enabled || false, 
+            sms: existingData.sms_enabled || false,
+            whatsapp: existingData.whatsapp_enabled || false,
+            ghl: existingData.ghl_enabled || false,
+          });
+          
           setNotificationEmail(existingData.notification_email || "");
-          if (existingData.notification_types) {
-            setNotificationTypes(existingData.notification_types);
-          }
+          
+          // Map notification types from database fields
+          setNotificationTypes({
+            confirmations: existingData.appointment_confirmations || false,
+            reminders: existingData.appointment_reminders || false,
+            cancellations: existingData.cancellations_reschedules || false,
+          });
+          
+          console.log('🔍 NotificationsPreferences: Mapped data to state:', {
+            channels: {
+              email: existingData.email_enabled,
+              messenger: existingData.messenger_enabled,
+              sms: existingData.sms_enabled,
+              whatsapp: existingData.whatsapp_enabled,
+              ghl: existingData.ghl_enabled,
+            },
+            types: {
+              confirmations: existingData.appointment_confirmations,
+              reminders: existingData.appointment_reminders,
+              cancellations: existingData.cancellations_reschedules,
+            }
+          });
+          
           setDataLoaded(true);
         } else {
           // Set default values if no existing data
