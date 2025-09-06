@@ -287,3 +287,46 @@ export const signOut = async (): Promise<void> => {
 export const getCurrentUser = async (): Promise<{ user: any; profile: any | null }> => {
   return authService.getCurrentUser();
 };
+
+// N8N Webhook API
+interface N8NWebhookRequest {
+  user_id: string;
+  user_mssg: string;
+  session_id: string;
+  agent_name: string;
+  timestamp_of_call_made: string;
+  request_id: string;
+}
+
+interface N8NWebhookResponse {
+  user_id: string;
+  session_id: string;
+  agent_name: string;
+  timestamp_of_call_made: string;
+  request_id: string;
+  agent_response: string;
+}
+
+export const callN8NWebhook = async (data: N8NWebhookRequest): Promise<N8NWebhookResponse> => {
+  try {
+    // Use the N8N webhook URL from environment variables
+    const n8nUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.theaiteam.uk/webhook/c2fcbad6-abc0-43af-8aa8-d1661ff4461d';
+    
+    const response = await fetch(n8nUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N webhook failed: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('N8N webhook error:', error);
+    throw new Error(error instanceof Error ? error.message : 'N8N webhook failed');
+  }
+};

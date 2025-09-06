@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useToast } from '../hooks/use-toast';
 import { useUser } from '../hooks/useUser';
-import { websiteApi } from '../lib/api';
+import { websiteApi, callN8NWebhook } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
 
@@ -115,6 +115,54 @@ export default function WebsiteDetails() {
     }
   };
 
+  // Helper function to parse agent response and extract business information
+  const parseAgentResponse = (agentResponse: string) => {
+    try {
+      // Try to extract structured information from the agent response
+      const response = agentResponse.toLowerCase();
+      
+      // Look for company description
+      const companyMatch = agentResponse.match(/company name:\s*([^|]+)/i) || 
+                          agentResponse.match(/description:\s*([^|]+)/i) ||
+                          agentResponse.match(/what.*company.*does[:\s]*([^|]+)/i);
+      
+      // Look for value proposition/takeaways
+      const valueMatch = agentResponse.match(/takeaways:\s*([^|]+)/i) ||
+                        agentResponse.match(/value proposition[:\s]*([^|]+)/i);
+      
+      // Look for business niche
+      const nicheMatch = agentResponse.match(/niche:\s*([^|]+)/i) ||
+                        agentResponse.match(/market[:\s]*([^|]+)/i);
+      
+      // Look for tags
+      const tagsMatch = agentResponse.match(/tags:\s*([^|]+)/i);
+      let extractedTags: string[] = [];
+      if (tagsMatch && tagsMatch[1]) {
+        extractedTags = tagsMatch[1].split(/[,.]/).map(tag => tag.trim()).filter(tag => tag.length > 0);
+      }
+
+      // Look for screenshot URL in the response
+      const screenshotMatch = agentResponse.match(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i);
+      
+      return {
+        companyDescription: companyMatch ? companyMatch[1].trim() : null,
+        valueProposition: valueMatch ? valueMatch[1].trim() : null,
+        businessNiche: nicheMatch ? nicheMatch[1].trim() : null,
+        tags: extractedTags.length > 0 ? extractedTags : null,
+        screenshotUrl: screenshotMatch ? screenshotMatch[1] : null
+      };
+    } catch (error) {
+      console.error('Error parsing agent response:', error);
+      return {
+        companyDescription: null,
+        valueProposition: null,
+        businessNiche: null,
+        tags: null,
+        screenshotUrl: null
+      };
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -139,34 +187,64 @@ export default function WebsiteDetails() {
         window.location.reload();
         return;
       }
-      
-      const result = await websiteApi.analyzeWebsite({
-        url: formattedUrl,
+
+      // Generate unique IDs for the N8N request
+      const requestId = crypto.randomUUID();
+      const currentTime = new Date().toISOString();
+
+      // Prepare N8N webhook payload
+      const n8nPayload = {
         user_id: currentUserId,
-        session_id: sessionId
-      });
+        user_mssg: formattedUrl, // Send the website URL as the message
+        session_id: `${sessionId}_SOL_${Date.now()}`,
+        agent_name: "SOL", // Using SOL as specified
+        timestamp_of_call_made: currentTime,
+        request_id: requestId
+      };
+
+      console.log('Sending N8N webhook request:', n8nPayload);
       
-      // Update form fields with analysis results if available
-      if (result.company_description) setCompanyDescription(result.company_description);
-      if (result.value_proposition) setValueProposition(result.value_proposition);
-      if (result.business_niche) setBusinessNiche(result.business_niche);
-      if (result.tags && Array.isArray(result.tags)) setTags(result.tags);
+      // Call N8N webhook
+      const n8nResponse = await callN8NWebhook(n8nPayload);
       
-      // Update screenshot if URL changed
-      if (result.screenshot_url) {
-        // Update the screenshot in the UI
-        const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
-        if (screenshotElement) {
-          screenshotElement.src = result.screenshot_url;
-          screenshotElement.alt = `${websiteUrl} website screenshot`;
+      console.log('N8N webhook response:', n8nResponse);
+      
+      // Parse the agent response to extract business information
+      if (n8nResponse.agent_response) {
+        const parsedData = parseAgentResponse(n8nResponse.agent_response);
+        
+        // Update form fields with extracted data
+        if (parsedData.companyDescription) {
+          setCompanyDescription(parsedData.companyDescription);
         }
+        if (parsedData.valueProposition) {
+          setValueProposition(parsedData.valueProposition);
+        }
+        if (parsedData.businessNiche) {
+          setBusinessNiche(parsedData.businessNiche);
+        }
+        if (parsedData.tags) {
+          setTags(parsedData.tags);
+        }
+        
+        // Update screenshot if URL is provided
+        if (parsedData.screenshotUrl) {
+          const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
+          if (screenshotElement) {
+            screenshotElement.src = parsedData.screenshotUrl;
+            screenshotElement.alt = `${websiteUrl} website screenshot`;
+          }
+        }
+        
+        toast({
+          title: "Website analyzed successfully",
+          description: "Form fields have been updated with AI analysis results."
+        });
+      } else {
+        throw new Error('No agent response received from N8N webhook');
       }
-      
-      toast({
-        title: "Website analyzed successfully",
-        description: "Form fields have been updated with the analysis results."
-      });
     } catch (error) {
+      console.error('Website analysis error:', error);
       toast({
         title: "Analysis failed",
         description: error instanceof Error ? error.message : "Failed to analyze website",
