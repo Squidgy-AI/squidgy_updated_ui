@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveCalendarSetup, getCalendarSetup } from "../lib/api";
+import { saveCalendarSetup, getCalendarSetup, getProfileUserId } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -205,7 +205,8 @@ export default function CalendarSetup() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const existingData = await getCalendarSetup(user.id);
+        const profileUserId = await getProfileUserId(user.id);
+        const existingData = await getCalendarSetup(profileUserId);
         if (existingData) {
           setCalendarName(existingData.calendar_name || "");
           setDescription(existingData.description || "");
@@ -249,8 +250,9 @@ export default function CalendarSetup() {
     setIsLoading(true);
     
     try {
+      const profileUserId = await getProfileUserId(user.id);
       const calendarSetupData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         calendar_name: calendarName,
         description: description,

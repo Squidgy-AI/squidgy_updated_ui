@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useToast } from '../hooks/use-toast';
 import { useUser } from '../hooks/useUser';
-import { websiteApi, callN8NWebhook, saveWebsiteAnalysis, getWebsiteAnalysis } from '../lib/api';
+import { websiteApi, callN8NWebhook, saveWebsiteAnalysis, getWebsiteAnalysis, getProfileUserId } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
 import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
@@ -49,22 +49,7 @@ export default function WebsiteDetails() {
     const loadExistingData = async () => {
       if (userId && !dataLoaded) {
         // Get the correct user_id from profiles table for loading data
-        const { supabase } = await import('../lib/supabase');
-        let profileUserId = userId;
-        
-        // If userId looks like a UUID (auth id), get the profile user_id
-        if (userId.includes('-')) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('id', userId)
-            .single();
-          
-          if (profile?.user_id) {
-            profileUserId = profile.user_id;
-            console.log('🔍 WebsiteDetails Load: Using profile user_id:', profileUserId);
-          }
-        }
+        const profileUserId = await getProfileUserId(userId);
         
         const existingData = await getWebsiteAnalysis(profileUserId);
         console.log('🔍 WebsiteDetails: Loaded existing data:', existingData);
@@ -320,22 +305,7 @@ export default function WebsiteDetails() {
     setLoading(true);
     try {
       // Step 1: Get the correct user_id from profiles table
-      const { supabase } = await import('../lib/supabase');
-      let profileUserId = userId;
-      
-      // If userId looks like a UUID (auth id), get the profile user_id
-      if (userId.includes('-')) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_id')
-          .eq('id', userId)
-          .single();
-        
-        if (profile?.user_id) {
-          profileUserId = profile.user_id;
-          console.log('🔍 WebsiteDetails: Using profile user_id:', profileUserId, 'instead of auth id:', userId);
-        }
-      }
+      const profileUserId = await getProfileUserId(userId);
       
       // Step 2: Save website analysis data to database
       toast({

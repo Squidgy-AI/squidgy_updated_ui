@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveNotificationPreferences, getNotificationPreferences } from "../lib/api";
+import { saveNotificationPreferences, getNotificationPreferences, getProfileUserId } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -98,7 +98,8 @@ export default function NotificationsPreferences() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const existingData = await getNotificationPreferences(user.id);
+        const profileUserId = await getProfileUserId(user.id);
+        const existingData = await getNotificationPreferences(profileUserId);
         if (existingData) {
           if (existingData.notification_channels) {
             setNotificationChannels(existingData.notification_channels);
@@ -154,8 +155,9 @@ export default function NotificationsPreferences() {
     setIsLoading(true);
     
     try {
+      const profileUserId = await getProfileUserId(user.id);
       const notificationPreferencesData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         email_enabled: notificationChannels.email,
         messenger_enabled: notificationChannels.messenger,

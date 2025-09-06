@@ -649,11 +649,14 @@ export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
+    
     // Use firm_user_id field for website_analysis table
     let { data, error } = await supabase
       .from('website_analysis')
       .select('*')
-      .eq('firm_user_id', userId)
+      .eq('firm_user_id', profileUserId)
       .eq('agent_id', agentId)
       .single();
     
@@ -674,10 +677,13 @@ export const getBusinessDetails = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
+    
     let { data, error } = await supabase
       .from('business_details')
       .select('*')
-      .eq('firm_user_id', userId)
+      .eq('firm_user_id', profileUserId)
       .eq('agent_id', agentId)
       .single();
       
@@ -698,10 +704,13 @@ export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Pr
   try {
     const { supabase } = await import('./supabase');
     
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
+    
     let { data, error } = await supabase
       .from('solar_setup')
       .select('*')
-      .eq('firm_user_id', userId)
+      .eq('firm_user_id', profileUserId)
       .eq('agent_id', agentId)
       .single();
       
@@ -722,10 +731,13 @@ export const getCalendarSetup = async (userId: string, agentId: string = 'SOL'):
   try {
     const { supabase } = await import('./supabase');
     
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
+    
     let { data, error } = await supabase
       .from('calendar_setup')
       .select('*')
-      .eq('firm_user_id', userId)
+      .eq('firm_user_id', profileUserId)
       .eq('agent_id', agentId)
       .single();
       
@@ -746,10 +758,13 @@ export const getNotificationPreferences = async (userId: string, agentId: string
   try {
     const { supabase } = await import('./supabase');
     
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
+    
     let { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
-      .eq('firm_user_id', userId)
+      .eq('firm_user_id', profileUserId)
       .eq('agent_id', agentId)
       .single();
       
@@ -765,6 +780,36 @@ export const getNotificationPreferences = async (userId: string, agentId: string
   }
 };
 
+// Helper function to get the correct user_id from profiles table
+export const getProfileUserId = async (authUserId: string): Promise<string> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    // If userId doesn't look like a UUID (auth id), return as is
+    if (!authUserId.includes('-')) {
+      return authUserId;
+    }
+    
+    // Get the profile user_id from the auth UUID
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('id', authUserId)
+      .single();
+    
+    if (profile?.user_id) {
+      console.log('🔍 getProfileUserId: Using profile user_id:', profile.user_id, 'instead of auth id:', authUserId);
+      return profile.user_id;
+    }
+    
+    console.log('⚠️ getProfileUserId: No profile found, using original userId:', authUserId);
+    return authUserId;
+  } catch (error) {
+    console.error('Error getting profile user_id:', error);
+    return authUserId;
+  }
+};
+
 // Check setup completion status for all steps
 export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'): Promise<{
   websiteDetails: boolean;
@@ -777,24 +822,8 @@ export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'):
   try {
     console.log('🔍 checkSetupStatus: Checking status for userId:', userId, 'agentId:', agentId);
     
-    // First, get the correct user_id from profiles table
-    const { supabase } = await import('./supabase');
-    
-    let profileUserId = userId;
-    
-    // If userId looks like a UUID (auth id), try to get the profile user_id
-    if (userId.includes('-')) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', userId)
-        .single();
-      
-      if (profile?.user_id) {
-        profileUserId = profile.user_id;
-        console.log('🔍 checkSetupStatus: Using profile user_id:', profileUserId, 'instead of auth id:', userId);
-      }
-    }
+    // Get the correct user_id from profiles table
+    const profileUserId = await getProfileUserId(userId);
     
     const [website, business, solar, calendar, notifications] = await Promise.all([
       getWebsiteAnalysis(profileUserId, agentId),

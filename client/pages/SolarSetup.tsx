@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveSolarSetup, getSolarSetup } from "../lib/api";
+import { saveSolarSetup, getSolarSetup, getProfileUserId } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -60,7 +60,8 @@ export default function SolarSetup() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (user?.id && !dataLoaded) {
-        const existingData = await getSolarSetup(user.id);
+        const profileUserId = await getProfileUserId(user.id);
+        const existingData = await getSolarSetup(profileUserId);
         if (existingData) {
           setInstallationPrice(existingData.installation_price || 0);
           setDealerFee(existingData.dealer_fee || 0);
@@ -106,8 +107,9 @@ export default function SolarSetup() {
     setIsLoading(true);
     
     try {
+      const profileUserId = await getProfileUserId(user.id);
       const solarSetupData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         installation_price: installationPrice,
         dealer_fee: dealerFee,

@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
-import { saveBusinessDetails, getBusinessDetails } from "../lib/api";
+import { saveBusinessDetails, getBusinessDetails, getProfileUserId } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { useToast } from "../hooks/use-toast";
 
@@ -36,7 +36,8 @@ export default function BusinessDetails() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (userId && !dataLoaded) {
-        const existingData = await getBusinessDetails(userId);
+        const profileUserId = await getProfileUserId(userId);
+        const existingData = await getBusinessDetails(profileUserId);
         if (existingData) {
           setBusinessName(existingData.business_name || "");
           setBusinessEmail(existingData.business_email || "");
@@ -96,6 +97,9 @@ export default function BusinessDetails() {
     
     setLoading(true);
     try {
+      // Get the correct user_id from profiles table
+      const profileUserId = await getProfileUserId(userId);
+      
       // Save business details data to database
       toast({
         title: "Saving business details...",
@@ -103,7 +107,7 @@ export default function BusinessDetails() {
       });
 
       const businessDetailsData = {
-        firm_user_id: userId, // This comes from useUser hook (profile.user_id)
+        firm_user_id: profileUserId, // Use the correct user_id from profiles table
         agent_id: 'SOL',
         business_name: businessName.trim(),
         business_email: businessEmail.trim(),
