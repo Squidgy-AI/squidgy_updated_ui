@@ -59,20 +59,19 @@ export class AuthService {
         throw new Error('Full name must be at least 2 characters');
       }
 
-      // Check if email already exists in profiles table (skip if Supabase not configured)
-      try {
-        const { data: existingProfiles, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', userData.email.toLowerCase());
+      // Check if email already exists in profiles table
+      const { data: existingProfiles, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userData.email.toLowerCase());
 
-        if (checkError) {
-          console.error('Error checking existing email:', checkError);
-        } else if (existingProfiles && existingProfiles.length > 0) {
-          throw new Error('An account with this email already exists. Please try logging in instead.');
-        }
-      } catch (error) {
-        console.warn('Profile check failed, continuing with signup:', error);
+      if (checkError) {
+        console.error('Error checking existing email:', checkError);
+        throw new Error('Unable to verify email availability. Please try again.');
+      } 
+      
+      if (existingProfiles && existingProfiles.length > 0) {
+        throw new Error('An account with this email already exists. Please try logging in instead.');
       }
 
       // Create auth user with email confirmation
