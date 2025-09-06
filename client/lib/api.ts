@@ -246,6 +246,115 @@ export const notificationApi = {
   },
 };
 
+// Solar Setup API
+interface SolarSetupData {
+  firm_user_id: string;
+  agent_id: string;
+  installation_price: number;
+  dealer_fee: number;
+  broker_fee: number;
+  allow_financed: boolean;
+  allow_cash: boolean;
+  financing_apr: number;
+  financing_term: number;
+  energy_price: number;
+  yearly_electric_cost_increase: number;
+  installation_lifespan: number;
+  typical_panel_count: number;
+  max_roof_segments: number;
+  solar_incentive: number;
+  setup_status?: string;
+}
+
+export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    console.log('🔍 Debugging solar setup save:', {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id,
+      installation_price: data.installation_price,
+      dealer_fee: data.dealer_fee
+    });
+    
+    // First, let's check if this user exists in profiles table (same logic as other saves)
+    const { data: profileCheck, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('user_id', data.firm_user_id)
+      .single();
+    
+    if (profileError || !profileCheck) {
+      console.error('Profile not found for user_id:', data.firm_user_id, profileError);
+      
+      // Try checking by id instead
+      const { data: profileById, error: profileByIdError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email')
+        .eq('id', data.firm_user_id)
+        .single();
+        
+      if (profileByIdError || !profileById) {
+        console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
+        throw new Error('User profile not found. Please ensure you are logged in properly.');
+      } else {
+        console.log('✅ Found profile by id:', profileById);
+        // Use the user_id from the found profile
+        data.firm_user_id = profileById.user_id;
+      }
+    } else {
+      console.log('✅ Found profile by user_id:', profileCheck);
+    }
+    
+    // Prepare data for database insert
+    const insertData = {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id || 'SOL',
+      installation_price: data.installation_price,
+      dealer_fee: data.dealer_fee,
+      broker_fee: data.broker_fee,
+      allow_financed: data.allow_financed,
+      allow_cash: data.allow_cash,
+      financing_apr: data.financing_apr,
+      financing_term: data.financing_term,
+      energy_price: data.energy_price,
+      yearly_electric_cost_increase: data.yearly_electric_cost_increase,
+      installation_lifespan: data.installation_lifespan,
+      typical_panel_count: data.typical_panel_count,
+      max_roof_segments: data.max_roof_segments,
+      solar_incentive: data.solar_incentive,
+      setup_status: data.setup_status || 'completed'
+    };
+
+    console.log('📝 Final solar setup insert data:', insertData);
+
+    // Use upsert to insert or update if record already exists
+    const { data: result, error } = await supabase
+      .from('solar_setup')
+      .upsert(insertData, {
+        onConflict: 'firm_user_id,agent_id',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase solar setup upsert error:', error);
+      throw new Error(`Failed to save solar setup: ${error.message}`);
+    }
+
+    console.log('✅ Solar setup saved successfully:', result);
+
+    return {
+      success: true,
+      message: 'Solar setup saved successfully'
+    };
+  } catch (error) {
+    console.error('Save solar setup error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save solar setup');
+  }
+};
+
 // Facebook Integration APIs
 export const facebookApi = {
   connectFacebook: async (data: {
