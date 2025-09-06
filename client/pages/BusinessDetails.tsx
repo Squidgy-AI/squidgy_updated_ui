@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Menu, Building2, Building, HelpCircle, Trash2, Plus, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
-import { saveBusinessDetails } from "../lib/api";
+import { saveBusinessDetails, getBusinessDetails } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 import { useToast } from "../hooks/use-toast";
 
@@ -18,18 +18,50 @@ export default function BusinessDetails() {
   const { userId, isReady } = useUser();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [emergencyNumbers, setEmergencyNumbers] = useState(['888-683-3631']);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [emergencyNumbers, setEmergencyNumbers] = useState(['']);
   const [addressMethod, setAddressMethod] = useState('lookup'); // 'lookup' or 'manual'
   
   // Form state variables
-  const [businessName, setBusinessName] = useState('RMS Energy Ltd.');
-  const [businessEmail, setBusinessEmail] = useState('info@rmsenergy.com');
-  const [phoneNumber, setPhoneNumber] = useState('888-683-3630');
+  const [businessName, setBusinessName] = useState('');
+  const [businessEmail, setBusinessEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [country, setCountry] = useState('US');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  
+  // Load existing data from database on component mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (userId && !dataLoaded) {
+        const existingData = await getBusinessDetails(userId);
+        if (existingData) {
+          setBusinessName(existingData.business_name || "");
+          setBusinessEmail(existingData.business_email || "");
+          setPhoneNumber(existingData.phone_number || "");
+          setEmergencyNumbers(existingData.emergency_numbers?.length > 0 ? existingData.emergency_numbers : ['']);
+          setCountry(existingData.country || "US");
+          setAddressMethod(existingData.address_method || "lookup");
+          setAddress(existingData.address_line || "");
+          setCity(existingData.city || "");
+          setState(existingData.state || "");
+          setPostalCode(existingData.postal_code || "");
+          setDataLoaded(true);
+        } else {
+          // Set default values if no existing data
+          setEmergencyNumbers(['888-683-3631']);
+          setBusinessName('RMS Energy Ltd.');
+          setBusinessEmail('info@rmsenergy.com');
+          setPhoneNumber('888-683-3630');
+          setDataLoaded(true);
+        }
+      }
+    };
+
+    loadExistingData();
+  }, [userId, dataLoaded]);
   
   // Handle address method change - clear fields when switching
   const handleAddressMethodChange = (method: string) => {

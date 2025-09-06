@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useToast } from '../hooks/use-toast';
 import { useUser } from '../hooks/useUser';
-import { websiteApi, callN8NWebhook, saveWebsiteAnalysis } from '../lib/api';
+import { websiteApi, callN8NWebhook, saveWebsiteAnalysis, getWebsiteAnalysis } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
 import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
@@ -34,29 +34,36 @@ export default function WebsiteDetails() {
   const { userId, sessionId, agentId, isReady } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [websiteUrl, setWebsiteUrl] = useState("rmsenergy.com");
-  const [companyDescription, setCompanyDescription] = useState(
-    "RMS Energy is a leading provider of comprehensive, safety-first power solutions across the electrical grid. Their breadth of technical expertise, commitment to safety, and dedication to transparent communication make them the trusted partner for organizations navigating dynamic energy needs."
-  );
-  const [valueProposition, setValueProposition] = useState(
-    "Client-Centric Approach with core values of agility, safety, integrity, and teamwork; Engineering-Focused Organization run by practicing engineers; Comprehensive Solutions from planning to implementation; Cutting-Edge Training and Technology with industry-leading computational environment."
-  );
-  const [businessNiche, setBusinessNiche] = useState(
-    "Turn-key solutions provider to the power industry, serving utilities, commercial, industrial, renewable, data center, and government clients across the U.S., focusing on critical infrastructure including substation design, commissioning, equipment upgrades, and system protection."
-  );
-  const [tags, setTags] = useState([
-    "Substation design",
-    "Commissioning", 
-    "Equipment upgrades",
-    "System protection",
-    "Utilities",
-    "Commercial",
-    "Industrial",
-    "Renewable",
-    "Data center",
-    "Government"
-  ]);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [valueProposition, setValueProposition] = useState("");
+  const [businessNiche, setBusinessNiche] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
+  
+  // Load existing data on mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (userId && !dataLoaded) {
+        const existingData = await getWebsiteAnalysis(userId);
+        if (existingData) {
+          setWebsiteUrl(existingData.website_url || "");
+          setCompanyDescription(existingData.company_description || "");
+          setValueProposition(existingData.value_proposition || "");
+          setBusinessNiche(existingData.business_niche || "");
+          setTags(existingData.tags || []);
+          setScreenshotUrl(existingData.screenshot_url || "");
+          setFaviconUrl(existingData.favicon_url || "");
+          setDataLoaded(true);
+        }
+      }
+    };
+    
+    loadExistingData();
+  }, [userId, dataLoaded]);
 
   const removeTag = (indexToRemove: number) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));

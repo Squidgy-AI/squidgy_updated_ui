@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Menu, Sun, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveSolarSetup } from "../lib/api";
+import { saveSolarSetup, getSolarSetup } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -39,21 +39,63 @@ export default function SolarSetup() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
-  // Form state
-  const [installationPrice, setInstallationPrice] = useState(2.00);
-  const [dealerFee, setDealerFee] = useState(15.0);
-  const [brokerFee, setBrokerFee] = useState(0.00);
+  // Form state - starting with empty/default values
+  const [installationPrice, setInstallationPrice] = useState(0);
+  const [dealerFee, setDealerFee] = useState(0);
+  const [brokerFee, setBrokerFee] = useState(0);
   const [allowFinanced, setAllowFinanced] = useState(true);
   const [allowCash, setAllowCash] = useState(true);
-  const [financingApr, setFinancingApr] = useState(5.0);
-  const [financingTerm, setFinancingTerm] = useState(240);
-  const [energyPrice, setEnergyPrice] = useState(0.17);
-  const [yearlyElectricCostIncrease, setYearlyElectricCostIncrease] = useState(4.0);
-  const [installationLifespan, setInstallationLifespan] = useState(20);
-  const [typicalPanelCount, setTypicalPanelCount] = useState(40);
-  const [maxRoofSegments, setMaxRoofSegments] = useState(4);
-  const [solarIncentive, setSolarIncentive] = useState(3.0);
+  const [financingApr, setFinancingApr] = useState(0);
+  const [financingTerm, setFinancingTerm] = useState(0);
+  const [energyPrice, setEnergyPrice] = useState(0);
+  const [yearlyElectricCostIncrease, setYearlyElectricCostIncrease] = useState(0);
+  const [installationLifespan, setInstallationLifespan] = useState(0);
+  const [typicalPanelCount, setTypicalPanelCount] = useState(0);
+  const [maxRoofSegments, setMaxRoofSegments] = useState(0);
+  const [solarIncentive, setSolarIncentive] = useState(0);
+
+  // Load existing data from database on component mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (user?.id && !dataLoaded) {
+        const existingData = await getSolarSetup(user.id);
+        if (existingData) {
+          setInstallationPrice(existingData.installation_price || 0);
+          setDealerFee(existingData.dealer_fee || 0);
+          setBrokerFee(existingData.broker_fee || 0);
+          setAllowFinanced(existingData.allow_financed ?? true);
+          setAllowCash(existingData.allow_cash ?? true);
+          setFinancingApr(existingData.financing_apr || 0);
+          setFinancingTerm(existingData.financing_term || 0);
+          setEnergyPrice(existingData.energy_price || 0);
+          setYearlyElectricCostIncrease(existingData.yearly_electric_cost_increase || 0);
+          setInstallationLifespan(existingData.installation_lifespan || 0);
+          setTypicalPanelCount(existingData.typical_panel_count || 0);
+          setMaxRoofSegments(existingData.max_roof_segments || 0);
+          setSolarIncentive(existingData.solar_incentive || 0);
+          setDataLoaded(true);
+        } else {
+          // Set default values if no existing data
+          setInstallationPrice(2.00);
+          setDealerFee(15.0);
+          setBrokerFee(0.00);
+          setFinancingApr(5.0);
+          setFinancingTerm(240);
+          setEnergyPrice(0.17);
+          setYearlyElectricCostIncrease(4.0);
+          setInstallationLifespan(20);
+          setTypicalPanelCount(40);
+          setMaxRoofSegments(4);
+          setSolarIncentive(3.0);
+          setDataLoaded(true);
+        }
+      }
+    };
+
+    loadExistingData();
+  }, [user?.id, dataLoaded]);
 
   const handleContinue = async () => {
     if (!user?.id) {

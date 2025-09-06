@@ -1,5 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Edit } from "lucide-react";
+import { useEffect, useState } from "react";
+import { checkSetupStatus } from "../lib/api";
+import { useUser } from "../hooks/useUser";
 
 interface Step {
   id: number;
@@ -14,6 +17,26 @@ interface SetupStepsSidebarProps {
 
 export function SetupStepsSidebar({ currentStep }: SetupStepsSidebarProps) {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const [completionStatus, setCompletionStatus] = useState({
+    websiteDetails: false,
+    businessDetails: false,
+    solarSetup: false,
+    calendarSetup: false,
+    notificationPreferences: false,
+    facebookConnect: false
+  });
+  
+  useEffect(() => {
+    const loadCompletionStatus = async () => {
+      if (user?.id) {
+        const status = await checkSetupStatus(user.id);
+        setCompletionStatus(status);
+      }
+    };
+    
+    loadCompletionStatus();
+  }, [user?.id]);
 
   const steps: Step[] = [
     { id: 1, label: "1. Website details", status: "future", path: "/website-details" },
@@ -24,12 +47,23 @@ export function SetupStepsSidebar({ currentStep }: SetupStepsSidebarProps) {
     { id: 6, label: "6. Connect to Facebook", status: "future", path: "/facebook-connect" },
   ];
 
-  // Update step statuses based on current step
+  // Update step statuses based on database completion status
   const updatedSteps = steps.map(step => {
-    if (step.id < currentStep) {
-      return { ...step, status: "completed" as const };
-    } else if (step.id === currentStep) {
+    // Check if this step is completed in database
+    let isCompleted = false;
+    switch(step.id) {
+      case 1: isCompleted = completionStatus.websiteDetails; break;
+      case 2: isCompleted = completionStatus.businessDetails; break;
+      case 3: isCompleted = completionStatus.solarSetup; break;
+      case 4: isCompleted = completionStatus.calendarSetup; break;
+      case 5: isCompleted = completionStatus.notificationPreferences; break;
+      case 6: isCompleted = completionStatus.facebookConnect; break;
+    }
+    
+    if (step.id === currentStep) {
       return { ...step, status: "current" as const };
+    } else if (isCompleted) {
+      return { ...step, status: "completed" as const };
     } else {
       return { ...step, status: "future" as const };
     }

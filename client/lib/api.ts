@@ -644,6 +644,179 @@ export const callN8NWebhook = async (data: N8NWebhookRequest): Promise<N8NWebhoo
   }
 };
 
+// Get existing website analysis data
+export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    // First check user_id, then fallback to id
+    let { data, error } = await supabase
+      .from('website_analysis')
+      .select('*')
+      .eq('firm_user_id', userId)
+      .eq('agent_id', agentId)
+      .single();
+      
+    if (error || !data) {
+      // Try with id as firm_user_id
+      const result = await supabase
+        .from('website_analysis')
+        .select('*')
+        .eq('firm_user_id', userId)
+        .eq('agent_id', agentId)
+        .single();
+        
+      data = result.data;
+      error = result.error;
+    }
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Error fetching website analysis:', error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error('Get website analysis error:', error);
+    return null;
+  }
+};
+
+// Get existing business details data
+export const getBusinessDetails = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    let { data, error } = await supabase
+      .from('business_details')
+      .select('*')
+      .eq('firm_user_id', userId)
+      .eq('agent_id', agentId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching business details:', error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error('Get business details error:', error);
+    return null;
+  }
+};
+
+// Get existing solar setup data
+export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    let { data, error } = await supabase
+      .from('solar_setup')
+      .select('*')
+      .eq('firm_user_id', userId)
+      .eq('agent_id', agentId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching solar setup:', error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error('Get solar setup error:', error);
+    return null;
+  }
+};
+
+// Get existing calendar setup data
+export const getCalendarSetup = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    let { data, error } = await supabase
+      .from('calendar_setup')
+      .select('*')
+      .eq('firm_user_id', userId)
+      .eq('agent_id', agentId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching calendar setup:', error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error('Get calendar setup error:', error);
+    return null;
+  }
+};
+
+// Get existing notification preferences data
+export const getNotificationPreferences = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    let { data, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('firm_user_id', userId)
+      .eq('agent_id', agentId)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching notification preferences:', error);
+      return null;
+    }
+    
+    return data || null;
+  } catch (error) {
+    console.error('Get notification preferences error:', error);
+    return null;
+  }
+};
+
+// Check setup completion status for all steps
+export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'): Promise<{
+  websiteDetails: boolean;
+  businessDetails: boolean;
+  solarSetup: boolean;
+  calendarSetup: boolean;
+  notificationPreferences: boolean;
+  facebookConnect: boolean;
+}> => {
+  try {
+    const [website, business, solar, calendar, notifications] = await Promise.all([
+      getWebsiteAnalysis(userId, agentId),
+      getBusinessDetails(userId, agentId),
+      getSolarSetup(userId, agentId),
+      getCalendarSetup(userId, agentId),
+      getNotificationPreferences(userId, agentId)
+    ]);
+    
+    return {
+      websiteDetails: !!website,
+      businessDetails: !!business,
+      solarSetup: !!solar,
+      calendarSetup: !!calendar,
+      notificationPreferences: !!notifications,
+      facebookConnect: false // This might need separate logic
+    };
+  } catch (error) {
+    console.error('Check setup status error:', error);
+    return {
+      websiteDetails: false,
+      businessDetails: false,
+      solarSetup: false,
+      calendarSetup: false,
+      notificationPreferences: false,
+      facebookConnect: false
+    };
+  }
+};
+
 // Website Analysis API
 interface WebsiteAnalysisData {
   firm_user_id: string;

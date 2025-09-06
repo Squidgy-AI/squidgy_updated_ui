@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Menu, Calendar, HelpCircle, Clock, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveCalendarSetup } from "../lib/api";
+import { saveCalendarSetup, getCalendarSetup } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -179,14 +179,15 @@ export default function CalendarSetup() {
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [hasTimeErrors, setHasTimeErrors] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
-  // Form state
-  const [calendarName, setCalendarName] = useState('Solar consultations');
-  const [description, setDescription] = useState('Schedule solar consultations and site visits with potential customers.');
+  // Form state - starting with empty/default values
+  const [calendarName, setCalendarName] = useState('');
+  const [description, setDescription] = useState('');
   const [callDuration, setCallDuration] = useState(60);
-  const [maxCallsPerDay, setMaxCallsPerDay] = useState(8);
-  const [noticeHours, setNoticeHours] = useState(24);
-  const [bookAheadDays, setBookAheadDays] = useState(24);
+  const [maxCallsPerDay, setMaxCallsPerDay] = useState(0);
+  const [noticeHours, setNoticeHours] = useState(0);
+  const [bookAheadDays, setBookAheadDays] = useState(0);
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [allowRescheduling, setAllowRescheduling] = useState(true);
   const [allowCancellations, setAllowCancellations] = useState(true);
@@ -199,6 +200,40 @@ export default function CalendarSetup() {
     saturday: { enabled: false, start: '09:00', end: '17:00' },
     sunday: { enabled: false, start: '09:00', end: '17:00' },
   });
+
+  // Load existing data from database on component mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (user?.id && !dataLoaded) {
+        const existingData = await getCalendarSetup(user.id);
+        if (existingData) {
+          setCalendarName(existingData.calendar_name || "");
+          setDescription(existingData.description || "");
+          setCallDuration(existingData.call_duration || 60);
+          setMaxCallsPerDay(existingData.max_calls_per_day || 0);
+          setNoticeHours(existingData.notice_hours || 0);
+          setBookAheadDays(existingData.book_ahead_days || 0);
+          setAutoConfirm(existingData.auto_confirm ?? true);
+          setAllowRescheduling(existingData.allow_rescheduling ?? true);
+          setAllowCancellations(existingData.allow_cancellations ?? true);
+          if (existingData.business_hours) {
+            setBusinessHours(existingData.business_hours);
+          }
+          setDataLoaded(true);
+        } else {
+          // Set default values if no existing data
+          setCalendarName('Solar consultations');
+          setDescription('Schedule solar consultations and site visits with potential customers.');
+          setMaxCallsPerDay(8);
+          setNoticeHours(24);
+          setBookAheadDays(24);
+          setDataLoaded(true);
+        }
+      }
+    };
+
+    loadExistingData();
+  }, [user?.id, dataLoaded]);
 
   const handleContinue = async () => {
     if (!user?.id) {

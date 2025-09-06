@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Menu, Bell, HelpCircle, Mail, MessageCircle, MessageSquare, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveNotificationPreferences } from "../lib/api";
+import { saveNotificationPreferences, getNotificationPreferences } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -77,21 +77,59 @@ export default function NotificationsPreferences() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
-  // Form state
+  // Form state - starting with empty/default values
   const [notificationChannels, setNotificationChannels] = useState({
-    email: true,
-    messenger: true,
+    email: false,
+    messenger: false,
     sms: false,
     whatsapp: false,
     ghl: false,
   });
-  const [notificationEmail, setNotificationEmail] = useState('info@rmsenergy.com');
+  const [notificationEmail, setNotificationEmail] = useState('');
   const [notificationTypes, setNotificationTypes] = useState({
-    confirmations: true,
-    reminders: true,
-    cancellations: true,
+    confirmations: false,
+    reminders: false,
+    cancellations: false,
   });
+
+  // Load existing data from database on component mount
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (user?.id && !dataLoaded) {
+        const existingData = await getNotificationPreferences(user.id);
+        if (existingData) {
+          if (existingData.notification_channels) {
+            setNotificationChannels(existingData.notification_channels);
+          }
+          setNotificationEmail(existingData.notification_email || "");
+          if (existingData.notification_types) {
+            setNotificationTypes(existingData.notification_types);
+          }
+          setDataLoaded(true);
+        } else {
+          // Set default values if no existing data
+          setNotificationChannels({
+            email: true,
+            messenger: true,
+            sms: false,
+            whatsapp: false,
+            ghl: false,
+          });
+          setNotificationEmail('info@rmsenergy.com');
+          setNotificationTypes({
+            confirmations: true,
+            reminders: true,
+            cancellations: true,
+          });
+          setDataLoaded(true);
+        }
+      }
+    };
+
+    loadExistingData();
+  }, [user?.id, dataLoaded]);
 
   const toggleChannel = (channel: string) => {
     setNotificationChannels(prev => ({
