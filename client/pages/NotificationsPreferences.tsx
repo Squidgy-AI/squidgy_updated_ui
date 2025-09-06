@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveNotificationPreferences, getNotificationPreferences, getProfileUserId } from "../lib/api";
+import { saveNotificationPreferences, getNotificationPreferences } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -75,7 +75,7 @@ function NotificationChannel({
 export default function NotificationsPreferences() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useUser();
+  const { userId } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   
@@ -97,18 +97,9 @@ export default function NotificationsPreferences() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.email && !dataLoaded) {
-        console.log('🔍 NotificationsPreferences: Getting user_id for email:', user.email);
-        
-        // Get the correct user_id from profiles table using email
-        const profileUserId = await getProfileUserId(user.email);
-        if (!profileUserId) {
-          console.error('❌ NotificationsPreferences: No user_id found for email:', user.email);
-          return;
-        }
-        
-        console.log('✅ NotificationsPreferences: Using user_id:', profileUserId);
-        const existingData = await getNotificationPreferences(profileUserId);
+      if (userId && !dataLoaded) {
+        console.log('🔍 NotificationsPreferences: Using userId from hook:', userId);
+        const existingData = await getNotificationPreferences(userId);
         if (existingData) {
           if (existingData.notification_channels) {
             setNotificationChannels(existingData.notification_channels);
@@ -139,7 +130,7 @@ export default function NotificationsPreferences() {
     };
 
     loadExistingData();
-  }, [user?.email, dataLoaded]);
+  }, [userId, dataLoaded]);
 
   const toggleChannel = (channel: string) => {
     setNotificationChannels(prev => ({
@@ -156,7 +147,7 @@ export default function NotificationsPreferences() {
   };
 
   const handleContinue = async () => {
-    if (!user?.email) {
+    if (!userId) {
       toast.error('Please log in to continue');
       return;
     }
@@ -164,19 +155,9 @@ export default function NotificationsPreferences() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 NotificationsPreferences Save: Getting user_id for email:', user.email);
-      
-      // Get the correct user_id from profiles table using email
-      const profileUserId = await getProfileUserId(user.email);
-      if (!profileUserId) {
-        toast.error('Unable to save preferences. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('✅ NotificationsPreferences Save: Using user_id:', profileUserId);
+      console.log('🔍 NotificationsPreferences Save: Using userId from hook:', userId);
       const notificationPreferencesData = {
-        firm_user_id: profileUserId,
+        firm_user_id: userId,
         agent_id: 'SOL',
         email_enabled: notificationChannels.email,
         messenger_enabled: notificationChannels.messenger,

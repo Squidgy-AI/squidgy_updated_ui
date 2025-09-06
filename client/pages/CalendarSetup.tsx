@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveCalendarSetup, getCalendarSetup, getProfileUserId } from "../lib/api";
+import { saveCalendarSetup, getCalendarSetup } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -176,7 +176,7 @@ function BusinessHours({ businessHours, setBusinessHours, onValidationChange }: 
 export default function CalendarSetup() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useUser();
+  const { userId } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [hasTimeErrors, setHasTimeErrors] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -204,18 +204,8 @@ export default function CalendarSetup() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.email && !dataLoaded) {
-        console.log('🔍 CalendarSetup: Getting user_id for email:', user.email);
-        
-        // Get the correct user_id from profiles table using email
-        const profileUserId = await getProfileUserId(user.email);
-        if (!profileUserId) {
-          console.error('❌ CalendarSetup: No user_id found for email:', user.email);
-          return;
-        }
-        
-        console.log('✅ CalendarSetup: Using user_id:', profileUserId);
-        const existingData = await getCalendarSetup(profileUserId);
+      if (userId && !dataLoaded) {
+        const existingData = await getCalendarSetup(userId);
         if (existingData) {
           setCalendarName(existingData.calendar_name || "");
           setDescription(existingData.description || "");
@@ -243,10 +233,10 @@ export default function CalendarSetup() {
     };
 
     loadExistingData();
-  }, [user?.email, dataLoaded]);
+  }, [userId, dataLoaded]);
 
   const handleContinue = async () => {
-    if (!user?.email) {
+    if (!userId) {
       toast.error('Please log in to continue');
       return;
     }
@@ -259,19 +249,8 @@ export default function CalendarSetup() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 CalendarSetup Save: Getting user_id for email:', user.email);
-      
-      // Get the correct user_id from profiles table using email
-      const profileUserId = await getProfileUserId(user.email);
-      if (!profileUserId) {
-        toast.error('Unable to save calendar setup. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('✅ CalendarSetup Save: Using user_id:', profileUserId);
       const calendarSetupData = {
-        firm_user_id: profileUserId,
+        firm_user_id: userId,
         agent_id: 'SOL',
         calendar_name: calendarName,
         description: description,

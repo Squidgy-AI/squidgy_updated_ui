@@ -5,7 +5,7 @@ import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
-import { saveSolarSetup, getSolarSetup, getProfileUserId } from "../lib/api";
+import { saveSolarSetup, getSolarSetup } from "../lib/api";
 import { toast } from "sonner";
 
 
@@ -37,7 +37,7 @@ function HelpTooltip({ content }: { content: string }) {
 export default function SolarSetup() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useUser();
+  const { userId } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   
@@ -59,18 +59,8 @@ export default function SolarSetup() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.email && !dataLoaded) {
-        console.log('🔍 SolarSetup: Getting user_id for email:', user.email);
-        
-        // Get the correct user_id from profiles table using email
-        const profileUserId = await getProfileUserId(user.email);
-        if (!profileUserId) {
-          console.error('❌ SolarSetup: No user_id found for email:', user.email);
-          return;
-        }
-        
-        console.log('✅ SolarSetup: Using user_id:', profileUserId);
-        const existingData = await getSolarSetup(profileUserId);
+      if (userId && !dataLoaded) {
+        const existingData = await getSolarSetup(userId);
         if (existingData) {
           setInstallationPrice(existingData.installation_price || 0);
           setDealerFee(existingData.dealer_fee || 0);
@@ -105,10 +95,10 @@ export default function SolarSetup() {
     };
 
     loadExistingData();
-  }, [user?.email, dataLoaded]);
+  }, [userId, dataLoaded]);
 
   const handleContinue = async () => {
-    if (!user?.email) {
+    if (!userId) {
       toast.error('Please log in to continue');
       return;
     }
@@ -116,19 +106,8 @@ export default function SolarSetup() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 SolarSetup Save: Getting user_id for email:', user.email);
-      
-      // Get the correct user_id from profiles table using email
-      const profileUserId = await getProfileUserId(user.email);
-      if (!profileUserId) {
-        toast.error('Unable to save setup. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('✅ SolarSetup Save: Using user_id:', profileUserId);
       const solarSetupData = {
-        firm_user_id: profileUserId,
+        firm_user_id: userId,
         agent_id: 'SOL',
         installation_price: installationPrice,
         dealer_fee: dealerFee,

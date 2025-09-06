@@ -104,19 +104,24 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           }
           
           console.log('UserProvider: Development mode - setting up dev user');
+          
+          // Use the correct user_id from profiles table if available
+          const finalUserId = profileData?.user_id || devUserId;
+          console.log('🔍 UserProvider Dev: Using userId:', finalUserId, profileData ? '(from profiles)' : '(generated)');
+          
           setIsAuthenticated(true);
           setUser({ id: devUserId, email: devUserEmail });
           setProfile(profileData || { 
             id: devUserId,
-            user_id: devUserId, 
+            user_id: finalUserId, 
             email: devUserEmail,
             full_name: 'Development User',
             profile_avatar_url: ''
           });
-          setUserIdState(devUserId);
-          setSessionIdState(`session_${devUserId}`);
-          setAgentIdState(`agent_${devUserId}`);
-          localStorage.setItem('squidgy_user_id', devUserId);
+          setUserIdState(finalUserId);
+          setSessionIdState(`session_${finalUserId}`);
+          setAgentIdState(`agent_${finalUserId}`);
+          localStorage.setItem('squidgy_user_id', finalUserId);
           
           setIsReady(true);
           return;
@@ -162,7 +167,32 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           setUser(authResult.user);
           setProfile(authResult.profile);
           
-          const currentUserId = authResult.profile?.user_id || authResult.user.id;
+          // Get the correct user_id from profiles table using email
+          let currentUserId = authResult.profile?.user_id;
+          
+          if (!currentUserId && authResult.user.email) {
+            console.log('UserProvider: No user_id in profile, looking up by email:', authResult.user.email);
+            try {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('email', authResult.user.email)
+                .single();
+              
+              if (profileData?.user_id) {
+                currentUserId = profileData.user_id;
+                console.log('✅ UserProvider: Found user_id by email lookup:', currentUserId);
+              } else {
+                console.log('⚠️ UserProvider: No user_id found by email, using auth id as fallback');
+                currentUserId = authResult.user.id;
+              }
+            } catch (error) {
+              console.error('UserProvider: Error looking up user_id by email:', error);
+              currentUserId = authResult.user.id;
+            }
+          }
+          
+          console.log('🔍 UserProvider: Final userId being set:', currentUserId);
           setUserIdState(currentUserId);
           localStorage.setItem('squidgy_user_id', currentUserId);
           
