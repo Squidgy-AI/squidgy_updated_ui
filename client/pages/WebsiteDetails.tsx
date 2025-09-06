@@ -175,8 +175,29 @@ export default function WebsiteDetails() {
     
     setLoading(true);
     try {
-      // Ensure URL has protocol
-      const formattedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
+      // Ensure URL has protocol and www
+      let formattedUrl = websiteUrl;
+      
+      // Add https:// if no protocol
+      if (!formattedUrl.startsWith('http')) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+      
+      // Add www. if not present (but skip for subdomains)
+      const urlObj = new URL(formattedUrl);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // Only add www. if:
+      // 1. It doesn't already have www.
+      // 2. It's not already a subdomain (no dots before the main domain)
+      // 3. It's not localhost or an IP address
+      if (!hostname.startsWith('www.') && 
+          hostname.split('.').length === 2 && // Only domain.tld format
+          !hostname.includes('localhost') &&
+          !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) { // Not an IP address
+        urlObj.hostname = `www.${hostname}`;
+        formattedUrl = urlObj.toString();
+      }
       
       // Force regenerate user ID if it's in old format
       let currentUserId = userId;
