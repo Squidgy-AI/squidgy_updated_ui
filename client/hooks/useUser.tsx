@@ -66,6 +66,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
                              !import.meta.env.VITE_SUPABASE_URL || 
                              import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
         
+        console.log('🔍 Environment check:', {
+          VITE_APP_ENV: import.meta.env.VITE_APP_ENV,
+          VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+          isDevelopment
+        });
+        
         if (isDevelopment) {
           // Development mode - create or use existing dev user
           let devUserId = localStorage.getItem('dev_user_id');
@@ -215,6 +221,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         
         if (authResult?.user) {
           console.log('UserProvider: User authenticated', { hasProfile: !!authResult.profile });
+          console.log('🔍 UserProvider Prod: Auth result:', {
+            authUserId: authResult.user.id,
+            authUserEmail: authResult.user.email,
+            profileUserId: authResult.profile?.user_id,
+            fullProfile: authResult.profile
+          });
+          
           setIsAuthenticated(true);
           setUser(authResult.user);
           setProfile(authResult.profile);
@@ -222,8 +235,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           // Get the correct user_id from profiles table using email
           let currentUserId = authResult.profile?.user_id;
           
-          if (!currentUserId && authResult.user.email) {
-            console.log('UserProvider: No user_id in profile, looking up by email:', authResult.user.email);
+          // ALWAYS do email lookup to get correct user_id from profiles table
+          if (authResult.user.email) {
+            console.log('UserProvider Prod: Doing email lookup for:', authResult.user.email);
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
@@ -231,17 +245,22 @@ export const UserProvider = ({ children }: UserProviderProps) => {
                 .eq('email', authResult.user.email)
                 .single();
               
+              console.log('🔍 UserProvider Prod: Email lookup result:', profileData);
+              
               if (profileData?.user_id) {
                 currentUserId = profileData.user_id;
-                console.log('✅ UserProvider: Found user_id by email lookup:', currentUserId);
+                console.log('✅ UserProvider Prod: Using user_id from email lookup:', currentUserId);
               } else {
-                console.log('⚠️ UserProvider: No user_id found by email, using auth id as fallback');
+                console.log('⚠️ UserProvider Prod: No user_id found by email, using auth id as fallback');
                 currentUserId = authResult.user.id;
               }
             } catch (error) {
-              console.error('UserProvider: Error looking up user_id by email:', error);
+              console.error('❌ UserProvider Prod: Error in email lookup:', error);
               currentUserId = authResult.user.id;
             }
+          } else {
+            console.log('⚠️ UserProvider Prod: No email, using profile or auth fallback');
+            currentUserId = currentUserId || authResult.user.id;
           }
           
           console.log('🔍 UserProvider: Final userId being set:', currentUserId);
