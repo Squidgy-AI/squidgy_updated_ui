@@ -48,7 +48,27 @@ export default function WebsiteDetails() {
   useEffect(() => {
     const loadExistingData = async () => {
       if (userId && !dataLoaded) {
-        const existingData = await getWebsiteAnalysis(userId);
+        // Get the correct user_id from profiles table for loading data
+        const { supabase } = await import('../lib/supabase');
+        let profileUserId = userId;
+        
+        // If userId looks like a UUID (auth id), get the profile user_id
+        if (userId.includes('-')) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('id', userId)
+            .single();
+          
+          if (profile?.user_id) {
+            profileUserId = profile.user_id;
+            console.log('🔍 WebsiteDetails Load: Using profile user_id:', profileUserId);
+          }
+        }
+        
+        const existingData = await getWebsiteAnalysis(profileUserId);
+        console.log('🔍 WebsiteDetails: Loaded existing data:', existingData);
+        
         if (existingData) {
           setWebsiteUrl(existingData.website_url || "");
           setCompanyDescription(existingData.company_description || "");
@@ -57,6 +77,9 @@ export default function WebsiteDetails() {
           setTags(existingData.tags || []);
           setScreenshotUrl(existingData.screenshot_url || "");
           setFaviconUrl(existingData.favicon_url || "");
+          setDataLoaded(true);
+        } else {
+          console.log('🔍 WebsiteDetails: No existing data found');
           setDataLoaded(true);
         }
       }
@@ -296,14 +319,32 @@ export default function WebsiteDetails() {
     
     setLoading(true);
     try {
-      // Step 1: Save website analysis data to database
+      // Step 1: Get the correct user_id from profiles table
+      const { supabase } = await import('../lib/supabase');
+      let profileUserId = userId;
+      
+      // If userId looks like a UUID (auth id), get the profile user_id
+      if (userId.includes('-')) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('id', userId)
+          .single();
+        
+        if (profile?.user_id) {
+          profileUserId = profile.user_id;
+          console.log('🔍 WebsiteDetails: Using profile user_id:', profileUserId, 'instead of auth id:', userId);
+        }
+      }
+      
+      // Step 2: Save website analysis data to database
       toast({
         title: "Saving website analysis...",
         description: "Storing your business information"
       });
 
       const websiteAnalysisData = {
-        firm_user_id: userId, // Pass user_id value from profiles to firm_user_id field
+        firm_user_id: profileUserId, // Use the correct user_id from profiles table
         agent_id: 'SOL',
         website_url: websiteUrl.startsWith('http') ? websiteUrl : `https://www.${websiteUrl}`,
         company_description: companyDescription.trim() || null,
