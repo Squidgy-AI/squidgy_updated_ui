@@ -426,3 +426,106 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ 
     throw new Error(error instanceof Error ? error.message : 'Failed to save website analysis');
   }
 };
+
+// Business Details API
+interface BusinessDetailsData {
+  firm_user_id: string;
+  agent_id: string;
+  business_name: string;
+  business_email: string;
+  phone_number: string;
+  emergency_numbers?: string[];
+  country?: string;
+  address_method?: string;
+  address_line: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  setup_status?: string;
+}
+
+export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    console.log('🔍 Debugging business details save:', {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id,
+      business_name: data.business_name,
+      business_email: data.business_email
+    });
+    
+    // First, let's check if this user exists in profiles table (same logic as website analysis)
+    const { data: profileCheck, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('user_id', data.firm_user_id)
+      .single();
+    
+    if (profileError || !profileCheck) {
+      console.error('Profile not found for user_id:', data.firm_user_id, profileError);
+      
+      // Try checking by id instead
+      const { data: profileById, error: profileByIdError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email')
+        .eq('id', data.firm_user_id)
+        .single();
+        
+      if (profileByIdError || !profileById) {
+        console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
+        throw new Error('User profile not found. Please ensure you are logged in properly.');
+      } else {
+        console.log('✅ Found profile by id:', profileById);
+        // Use the user_id from the found profile
+        data.firm_user_id = profileById.user_id;
+      }
+    } else {
+      console.log('✅ Found profile by user_id:', profileCheck);
+    }
+    
+    // Prepare data for database insert
+    const insertData = {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id || 'SOL',
+      business_name: data.business_name,
+      business_email: data.business_email,
+      phone_number: data.phone_number,
+      emergency_numbers: data.emergency_numbers && data.emergency_numbers.length > 0 ? data.emergency_numbers : null,
+      country: data.country || 'US',
+      address_method: data.address_method || 'manual',
+      address_line: data.address_line,
+      city: data.city,
+      state: data.state,
+      postal_code: data.postal_code,
+      setup_status: data.setup_status || 'completed'
+    };
+
+    console.log('📝 Final business details insert data:', insertData);
+
+    // Use upsert to insert or update if record already exists
+    const { data: result, error } = await supabase
+      .from('business_details')
+      .upsert(insertData, {
+        onConflict: 'firm_user_id,agent_id',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase business details upsert error:', error);
+      throw new Error(`Failed to save business details: ${error.message}`);
+    }
+
+    console.log('✅ Business details saved successfully:', result);
+
+    return {
+      success: true,
+      message: 'Business details saved successfully'
+    };
+  } catch (error) {
+    console.error('Save business details error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save business details');
+  }
+};

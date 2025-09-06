@@ -3,6 +3,9 @@ import { X, Menu, Building2, Building, HelpCircle, Trash2, Plus, ChevronDown } f
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { saveBusinessDetails } from "../lib/api";
+import { useUser } from "../hooks/useUser";
+import { useToast } from "../hooks/use-toast";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -71,9 +74,22 @@ function SetupStepsSidebar() {
 // Main Business Details Page Component
 export default function BusinessDetails() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { userId, isReady } = useUser();
+  const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [emergencyNumbers, setEmergencyNumbers] = useState(['888-683-3631']);
   const [addressMethod, setAddressMethod] = useState('manual'); // 'lookup' or 'manual'
+  
+  // Form state variables
+  const [businessName, setBusinessName] = useState('RMS Energy Ltd.');
+  const [businessEmail, setBusinessEmail] = useState('info@rmsenergy.com');
+  const [phoneNumber, setPhoneNumber] = useState('888-683-3630');
+  const [country, setCountry] = useState('US');
+  const [address, setAddress] = useState('15396 183rd St Little Falls, MN 56345');
+  const [city, setCity] = useState('Little Falls');
+  const [state, setState] = useState('Minnesota');
+  const [postalCode, setPostalCode] = useState('56345');
 
   const addEmergencyNumber = () => {
     setEmergencyNumbers([...emergencyNumbers, '']);
@@ -91,8 +107,51 @@ export default function BusinessDetails() {
     setEmergencyNumbers(updated);
   };
 
-  const handleContinue = () => {
-    navigate('/solar-setup');
+  const handleContinue = async () => {
+    if (!isReady || !userId) return;
+    
+    setLoading(true);
+    try {
+      // Save business details data to database
+      toast({
+        title: "Saving business details...",
+        description: "Storing your business information"
+      });
+
+      const businessDetailsData = {
+        firm_user_id: userId, // This comes from useUser hook (profile.user_id)
+        agent_id: 'SOL',
+        business_name: businessName.trim(),
+        business_email: businessEmail.trim(),
+        phone_number: phoneNumber.trim(),
+        emergency_numbers: emergencyNumbers.filter(num => num.trim().length > 0),
+        country: country,
+        address_method: addressMethod,
+        address_line: address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        postal_code: postalCode.trim(),
+        setup_status: 'completed'
+      };
+
+      await saveBusinessDetails(businessDetailsData);
+      
+      toast({
+        title: "Business details saved!",
+        description: "Your business information has been stored successfully"
+      });
+
+      // Navigate to next step
+      navigate('/solar-setup');
+    } catch (error) {
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save business details",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,7 +217,8 @@ export default function BusinessDetails() {
               <label className="block text-sm font-semibold text-text-primary mb-2">Business name</label>
               <input
                 type="text"
-                defaultValue="RMS Energy Ltd."
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -169,7 +229,8 @@ export default function BusinessDetails() {
               <div className="relative">
                 <input
                   type="email"
-                  defaultValue="info@rmsenergy.com"
+                  value={businessEmail}
+                  onChange={(e) => setBusinessEmail(e.target.value)}
                   className="w-full p-3 pl-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                 />
                 <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 20 20">
@@ -184,7 +245,8 @@ export default function BusinessDetails() {
               <div className="relative">
                 <input
                   type="tel"
-                  defaultValue="888-683-3630"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full p-3 pl-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                 />
                 <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 20 20">
@@ -232,7 +294,7 @@ export default function BusinessDetails() {
             <div className="mb-6">
               <label className="block text-sm font-semibold text-text-primary mb-2">Country</label>
               <div className="relative">
-                <select className="w-full p-3 pl-10 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none">
+                <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full p-3 pl-10 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none">
                   <option value="US">🇺🇸 United States</option>
                   <option value="CA">🇨🇦 Canada</option>
                   <option value="GB">🇬🇧 United Kingdom</option>
@@ -279,7 +341,8 @@ export default function BusinessDetails() {
               <label className="block text-sm font-semibold text-text-primary mb-2">Address</label>
               <input
                 type="text"
-                defaultValue="15396 183rd St Little Falls, MN 56345"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -289,7 +352,8 @@ export default function BusinessDetails() {
               <label className="block text-sm font-semibold text-text-primary mb-2">City</label>
               <input
                 type="text"
-                defaultValue="Little Falls"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -299,7 +363,8 @@ export default function BusinessDetails() {
               <label className="block text-sm font-semibold text-text-primary mb-2">State</label>
               <input
                 type="text"
-                defaultValue="Minnesota"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -309,7 +374,8 @@ export default function BusinessDetails() {
               <label className="block text-sm font-semibold text-text-primary mb-2">Postal code</label>
               <input
                 type="text"
-                defaultValue="56345"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -317,9 +383,10 @@ export default function BusinessDetails() {
             {/* Continue Button */}
             <button 
               onClick={handleContinue}
-              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              disabled={loading || !isReady}
+              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Continue
+              {loading ? "Saving..." : "Continue"}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
               </svg>
