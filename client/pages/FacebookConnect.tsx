@@ -3,59 +3,8 @@ import { X, Menu, Facebook, HelpCircle, Check, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 
-// Setup Steps Sidebar Component
-function SetupStepsSidebar() {
-  const steps = [
-    { id: 1, label: "Website details", status: "completed" },
-    { id: 2, label: "2. Business details", status: "completed" },
-    { id: 3, label: "3. Solar setup", status: "completed" },
-    { id: 4, label: "4. Calendar setup", status: "completed" },
-    { id: 5, label: "5. Notifications preferences", status: "completed" },
-    { id: 6, label: "6. Connect to Facebook", status: "current" },
-  ];
-
-  return (
-    <div className="w-96 bg-white h-full flex flex-col">
-      <div className="flex-1 border-l border-grey-700 p-5">
-        <div className="pt-10 pb-5">
-          <h3 className="text-lg font-semibold text-text-primary">Setup steps</h3>
-        </div>
-        
-        <div className="space-y-2">
-          {steps.map((step) => (
-            <div
-              key={step.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border ${
-                step.status === "current"
-                  ? "border-2 border-squidgy-purple"
-                  : "border border-grey-700T"
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1">
-                {step.status === "completed" ? (
-                  <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                ) : step.status === "current" ? (
-                  <div className="w-1.5 h-1.5 rounded-full bg-squidgy-purple ml-1.25" />
-                ) : (
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400 ml-1.25" />
-                )}
-                <span className="text-sm text-text-primary">
-                  {step.label}
-                </span>
-              </div>
-              {step.status === "completed" && (
-                <Edit className="w-4 h-4 text-squidgy-purple" />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // Facebook Icon Component
@@ -476,7 +425,7 @@ export default function FacebookConnect() {
 
         {/* Setup Steps Sidebar */}
         <div className="hidden lg:block">
-          <SetupStepsSidebar />
+          <SetupStepsSidebar currentStep={6} />
         </div>
       </div>
 
@@ -484,7 +433,7 @@ export default function FacebookConnect() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
           <div className="absolute right-0 top-0 h-full">
-            <SetupStepsSidebar />
+            <SetupStepsSidebar currentStep={6} />
             <button 
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"

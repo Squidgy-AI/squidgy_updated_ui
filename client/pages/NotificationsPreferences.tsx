@@ -3,72 +3,11 @@ import { X, Menu, Bell, HelpCircle, Mail, MessageCircle, MessageSquare, Smartpho
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
 import { saveNotificationPreferences } from "../lib/api";
 import { toast } from "sonner";
 
-// Setup Steps Sidebar Component
-function SetupStepsSidebar() {
-  const steps = [
-    { id: 1, label: "1. Website details", status: "completed" },
-    { id: 2, label: "2. Business details", status: "completed" },
-    { id: 3, label: "3. Solar setup", status: "completed" },
-    { id: 4, label: "4. Calendar setup", status: "completed" },
-    { id: 5, label: "5. Notifications preferences", status: "current" },
-    { id: 6, label: "6. Connect to Facebook", status: "future" },
-  ];
-
-  return (
-    <div className="w-80 bg-white border-l border-grey-700 h-full flex flex-col p-5">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-6">Setup steps</h3>
-      </div>
-      
-      <div className="space-y-2">
-        {steps.map((step) => (
-          <div
-            key={step.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
-              step.status === "current"
-                ? "border-squidgy-purple bg-white"
-                : step.status === "completed"
-                ? "border-green-500 bg-white"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <div className="p-1">
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${
-                  step.status === "current" 
-                    ? "bg-squidgy-purple" 
-                    : step.status === "completed"
-                    ? "bg-green-500"
-                    : "bg-gray-400"
-                }`}
-              />
-            </div>
-            <span
-              className={`text-sm ${
-                step.status === "current" || step.status === "completed" 
-                  ? "text-text-primary" 
-                  : "text-gray-400"
-              }`}
-            >
-              {step.label}
-            </span>
-            {step.status === "completed" && (
-              <button className="ml-auto p-1 hover:bg-gray-100 rounded transition-colors">
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 16 16">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.25 4.5L4.75 11L1.25 7.5" />
-                </svg>
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 
 // Notification Channel Component
@@ -389,7 +328,7 @@ export default function NotificationsPreferences() {
 
         {/* Setup Steps Sidebar */}
         <div className="hidden lg:block">
-          <SetupStepsSidebar />
+          <SetupStepsSidebar currentStep={5} />
         </div>
       </div>
 
@@ -397,7 +336,7 @@ export default function NotificationsPreferences() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
           <div className="absolute right-0 top-0 h-full">
-            <SetupStepsSidebar />
+            <SetupStepsSidebar currentStep={5} />
             <button 
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"

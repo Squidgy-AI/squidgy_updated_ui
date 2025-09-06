@@ -8,6 +8,7 @@ import { useUser } from '../hooks/useUser';
 import { websiteApi, callN8NWebhook, saveWebsiteAnalysis } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
+import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
 
 // Tag Chip Component
 function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -24,53 +25,6 @@ function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   );
 }
 
-// Setup Steps Sidebar Component
-function SetupStepsSidebar() {
-  const steps = [
-    { id: 1, label: "Website details", status: "current" },
-    { id: 2, label: "2. Business details", status: "future" },
-    { id: 3, label: "3. Solar setup", status: "future" },
-    { id: 4, label: "4. Calendar setup", status: "future" },
-    { id: 5, label: "5. Notifications preferences", status: "future" },
-    { id: 6, label: "6. Connect to Facebook", status: "future" },
-  ];
-
-  return (
-    <div className="w-80 bg-white border-l border-grey-700 h-full flex flex-col p-5">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-6">Setup steps</h3>
-      </div>
-      
-      <div className="space-y-2">
-        {steps.map((step) => (
-          <div
-            key={step.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
-              step.status === "current"
-                ? "border-squidgy-purple bg-white"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <div className="p-1">
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${
-                  step.status === "current" ? "bg-squidgy-purple" : "bg-gray-400"
-                }`}
-              />
-            </div>
-            <span
-              className={`text-sm ${
-                step.status === "current" ? "text-text-primary" : "text-gray-400"
-              }`}
-            >
-              {step.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 
 // Main Website Details Page Component
@@ -651,7 +605,7 @@ export default function WebsiteDetails() {
 
         {/* Setup Steps Sidebar */}
         <div className="hidden lg:block">
-          <SetupStepsSidebar />
+          <SetupStepsSidebar currentStep={1} />
         </div>
       </div>
 
@@ -659,7 +613,7 @@ export default function WebsiteDetails() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
           <div className="absolute right-0 top-0 h-full">
-            <SetupStepsSidebar />
+            <SetupStepsSidebar currentStep={1} />
             <button 
               onClick={() => setSidebarOpen(false)}
               className="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
