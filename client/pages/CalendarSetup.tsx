@@ -3,6 +3,9 @@ import { X, Menu, Calendar, HelpCircle, Clock, ChevronDown } from "lucide-react"
 import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { useUser } from "../hooks/useUser";
+import { saveCalendarSetup } from "../lib/api";
+import { toast } from "sonner";
 
 // Setup Steps Sidebar Component
 function SetupStepsSidebar() {
@@ -69,16 +72,10 @@ function SetupStepsSidebar() {
 
 
 // Business Hours Component
-function BusinessHours() {
-  const [businessHours, setBusinessHours] = useState({
-    monday: { enabled: true, start: '9:00', end: '17:00' },
-    tuesday: { enabled: true, start: '9:00', end: '17:00' },
-    wednesday: { enabled: true, start: '9:00', end: '17:00' },
-    thursday: { enabled: true, start: '9:00', end: '17:00' },
-    friday: { enabled: true, start: '9:00', end: '17:00' },
-    saturday: { enabled: false, start: '9:00', end: '17:00' },
-    sunday: { enabled: false, start: '9:00', end: '17:00' },
-  });
+function BusinessHours({ businessHours, setBusinessHours }: {
+  businessHours: Record<string, { enabled: boolean; start: string; end: string }>;
+  setBusinessHours: (hours: Record<string, { enabled: boolean; start: string; end: string }>) => void;
+}) {
 
   const toggleDay = (day: string) => {
     setBusinessHours(prev => ({
@@ -163,12 +160,68 @@ function BusinessHours() {
 export default function CalendarSetup() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form state
+  const [calendarName, setCalendarName] = useState('Solar consultations');
+  const [description, setDescription] = useState('Schedule solar consultations and site visits with potential customers.');
+  const [callDuration, setCallDuration] = useState(60);
+  const [maxCallsPerDay, setMaxCallsPerDay] = useState(8);
+  const [noticeHours, setNoticeHours] = useState(24);
+  const [bookAheadDays, setBookAheadDays] = useState(24);
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [allowRescheduling, setAllowRescheduling] = useState(true);
   const [allowCancellations, setAllowCancellations] = useState(true);
+  const [businessHours, setBusinessHours] = useState({
+    monday: { enabled: true, start: '09:00', end: '17:00' },
+    tuesday: { enabled: true, start: '09:00', end: '17:00' },
+    wednesday: { enabled: true, start: '09:00', end: '17:00' },
+    thursday: { enabled: true, start: '09:00', end: '17:00' },
+    friday: { enabled: true, start: '09:00', end: '17:00' },
+    saturday: { enabled: false, start: '09:00', end: '17:00' },
+    sunday: { enabled: false, start: '09:00', end: '17:00' },
+  });
 
-  const handleContinue = () => {
-    navigate('/notifications-preferences');
+  const handleContinue = async () => {
+    if (!user?.id) {
+      toast.error('Please log in to continue');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const calendarSetupData = {
+        firm_user_id: user.id,
+        agent_id: 'SOL',
+        calendar_name: calendarName,
+        description: description,
+        call_duration: callDuration,
+        max_calls_per_day: maxCallsPerDay,
+        notice_hours: noticeHours,
+        book_ahead_days: bookAheadDays,
+        auto_confirm: autoConfirm,
+        allow_rescheduling: allowRescheduling,
+        allow_cancellations: allowCancellations,
+        business_hours: businessHours,
+        setup_status: 'completed'
+      };
+
+      const result = await saveCalendarSetup(calendarSetupData);
+      
+      if (result.success) {
+        toast.success('Calendar setup saved successfully!');
+        navigate('/notifications-preferences');
+      } else {
+        toast.error('Failed to save calendar setup');
+      }
+    } catch (error: any) {
+      console.error('Calendar setup save error:', error);
+      toast.error(error.message || 'Failed to save calendar setup');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -234,7 +287,8 @@ export default function CalendarSetup() {
               <label className="block text-sm font-semibold text-text-primary mb-2">Calendar name</label>
               <input
                 type="text"
-                defaultValue="Solar consultations"
+                value={calendarName}
+                onChange={(e) => setCalendarName(e.target.value)}
                 className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
               />
             </div>
@@ -244,7 +298,8 @@ export default function CalendarSetup() {
               <label className="block text-sm font-semibold text-text-primary mb-2">Description</label>
               <textarea
                 className="w-full h-20 p-3 border border-grey-500 rounded-md text-text-primary text-base resize-none focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
-                defaultValue="Schedule solar consultations and site visits with potential customers."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
@@ -253,10 +308,14 @@ export default function CalendarSetup() {
               <div>
                 <label className="block text-sm font-semibold text-text-primary mb-2">Call duration</label>
                 <div className="relative">
-                  <select className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none">
+                  <select 
+                    value={callDuration}
+                    onChange={(e) => setCallDuration(parseInt(e.target.value))}
+                    className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none"
+                  >
                     <option value="30">30 minutes</option>
                     <option value="45">45 minutes</option>
-                    <option value="60" selected>60 minutes</option>
+                    <option value="60">60 minutes</option>
                     <option value="90">90 minutes</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -266,10 +325,14 @@ export default function CalendarSetup() {
               <div>
                 <label className="block text-sm font-semibold text-text-primary mb-2">Max calls per day</label>
                 <div className="relative">
-                  <select className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none">
+                  <select
+                    value={maxCallsPerDay}
+                    onChange={(e) => setMaxCallsPerDay(parseInt(e.target.value))}
+                    className="w-full p-3 pr-10 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent appearance-none"
+                  >
                     <option value="4">4</option>
                     <option value="6">6</option>
-                    <option value="8" selected>8</option>
+                    <option value="8">8</option>
                     <option value="10">10</option>
                     <option value="12">12</option>
                   </select>
@@ -287,7 +350,8 @@ export default function CalendarSetup() {
                   <label className="block text-sm font-semibold text-text-primary mb-2">Notice (hours)</label>
                   <input
                     type="number"
-                    defaultValue="24"
+                    value={noticeHours}
+                    onChange={(e) => setNoticeHours(parseInt(e.target.value) || 0)}
                     className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                   />
                 </div>
@@ -296,7 +360,8 @@ export default function CalendarSetup() {
                   <label className="block text-sm font-semibold text-text-primary mb-2">Book ahead (days)</label>
                   <input
                     type="number"
-                    defaultValue="24"
+                    value={bookAheadDays}
+                    onChange={(e) => setBookAheadDays(parseInt(e.target.value) || 0)}
                     className="w-full p-3 border border-grey-500 rounded-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                   />
                 </div>
@@ -338,18 +403,21 @@ export default function CalendarSetup() {
             {/* Business Hours */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-text-primary mb-4">Business hours</h3>
-              <BusinessHours />
+              <BusinessHours businessHours={businessHours} setBusinessHours={setBusinessHours} />
             </div>
 
             {/* Continue Button */}
             <button 
               onClick={handleContinue}
-              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full bg-squidgy-gradient text-white font-bold text-sm py-3 px-5 rounded-button hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
-              </svg>
+              {isLoading ? 'Saving...' : 'Continue'}
+              {!isLoading && (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 21 21">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.83333 10.1123H17.1667M17.1667 10.1123L12.1667 5.1123M17.1667 10.1123L12.1667 15.1123" />
+                </svg>
+              )}
             </button>
           </div>
         </div>

@@ -355,6 +355,109 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
   }
 };
 
+// Calendar Setup API
+interface CalendarSetupData {
+  firm_user_id: string;
+  agent_id: string;
+  calendar_name: string;
+  description?: string;
+  call_duration: number;
+  max_calls_per_day: number;
+  notice_hours: number;
+  book_ahead_days: number;
+  auto_confirm: boolean;
+  allow_rescheduling: boolean;
+  allow_cancellations: boolean;
+  business_hours: Record<string, { enabled: boolean; start: string; end: string }>;
+  setup_status?: string;
+}
+
+export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    console.log('🔍 Debugging calendar setup save:', {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id,
+      calendar_name: data.calendar_name,
+      call_duration: data.call_duration
+    });
+    
+    // First, let's check if this user exists in profiles table (same logic as other saves)
+    const { data: profileCheck, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('user_id', data.firm_user_id)
+      .single();
+    
+    if (profileError || !profileCheck) {
+      console.error('Profile not found for user_id:', data.firm_user_id, profileError);
+      
+      // Try checking by id instead
+      const { data: profileById, error: profileByIdError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email')
+        .eq('id', data.firm_user_id)
+        .single();
+        
+      if (profileByIdError || !profileById) {
+        console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
+        throw new Error('User profile not found. Please ensure you are logged in properly.');
+      } else {
+        console.log('✅ Found profile by id:', profileById);
+        // Use the user_id from the found profile
+        data.firm_user_id = profileById.user_id;
+      }
+    } else {
+      console.log('✅ Found profile by user_id:', profileCheck);
+    }
+    
+    // Prepare data for database insert
+    const insertData = {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id || 'SOL',
+      calendar_name: data.calendar_name,
+      description: data.description || null,
+      call_duration: data.call_duration,
+      max_calls_per_day: data.max_calls_per_day,
+      notice_hours: data.notice_hours,
+      book_ahead_days: data.book_ahead_days,
+      auto_confirm: data.auto_confirm,
+      allow_rescheduling: data.allow_rescheduling,
+      allow_cancellations: data.allow_cancellations,
+      business_hours: data.business_hours,
+      setup_status: data.setup_status || 'completed'
+    };
+
+    console.log('📝 Final calendar setup insert data:', insertData);
+
+    // Use upsert to insert or update if record already exists
+    const { data: result, error } = await supabase
+      .from('calendar_setup')
+      .upsert(insertData, {
+        onConflict: 'firm_user_id,agent_id',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase calendar setup upsert error:', error);
+      throw new Error(`Failed to save calendar setup: ${error.message}`);
+    }
+
+    console.log('✅ Calendar setup saved successfully:', result);
+
+    return {
+      success: true,
+      message: 'Calendar setup saved successfully'
+    };
+  } catch (error) {
+    console.error('Save calendar setup error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save calendar setup');
+  }
+};
+
 // Facebook Integration APIs
 export const facebookApi = {
   connectFacebook: async (data: {
