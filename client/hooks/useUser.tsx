@@ -53,6 +53,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       try {
         console.log('UserProvider: Starting user initialization...');
         
+        
         // Check if we're in development mode
         const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
                              !import.meta.env.VITE_SUPABASE_URL || 
@@ -105,9 +106,37 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           
           console.log('UserProvider: Development mode - setting up dev user');
           
-          // Use the correct user_id from profiles table if available
-          const finalUserId = profileData?.user_id || devUserId;
-          console.log('🔍 UserProvider Dev: Using userId:', finalUserId, profileData ? '(from profiles)' : '(generated)');
+          // ALWAYS use user_id from profiles table in development mode
+          let finalUserId = profileData?.user_id;
+          
+          if (!finalUserId) {
+            console.log('🔍 UserProvider Dev: No user_id in profile, doing email lookup for:', devUserEmail);
+            try {
+              // Try to get the correct user_id by email lookup
+              const { data: emailLookupData } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('email', devUserEmail)
+                .single();
+              
+              if (emailLookupData?.user_id) {
+                finalUserId = emailLookupData.user_id;
+                console.log('✅ UserProvider Dev: Found user_id by email lookup:', finalUserId);
+              } else {
+                console.log('⚠️ UserProvider Dev: No user_id found, using dev fallback');
+                finalUserId = devUserId;
+              }
+            } catch (error) {
+              console.error('❌ UserProvider Dev: Email lookup failed:', error);
+              finalUserId = devUserId;
+            }
+          }
+          
+          console.log('🔍 UserProvider Dev: Final userId:', finalUserId, {
+            fromProfile: !!profileData?.user_id,
+            fromEmailLookup: !profileData?.user_id && finalUserId !== devUserId,
+            fallback: finalUserId === devUserId
+          });
           
           setIsAuthenticated(true);
           setUser({ id: devUserId, email: devUserEmail });
