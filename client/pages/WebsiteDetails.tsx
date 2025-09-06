@@ -303,13 +303,15 @@ export default function WebsiteDetails() {
       });
 
       const websiteAnalysisData = {
-        firm_user_id: userId, // This comes from useUser hook (profile.user_id)
+        firm_user_id: userId, // Pass user_id value from profiles to firm_user_id field
         agent_id: 'SOL',
         website_url: websiteUrl.startsWith('http') ? websiteUrl : `https://www.${websiteUrl}`,
         company_description: companyDescription.trim() || null,
         value_proposition: valueProposition.trim() || null,
         business_niche: businessNiche.trim() || null,
         tags: tags.length > 0 ? tags : null,
+        screenshot_url: screenshotUrl.trim() || null, // Capture screenshot URL
+        favicon_url: faviconUrl.trim() || null, // Capture favicon URL
         analysis_status: 'completed'
       };
 

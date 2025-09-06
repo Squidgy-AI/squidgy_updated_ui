@@ -649,26 +649,13 @@ export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
-    // First check user_id, then fallback to id
+    // Use firm_user_id field for website_analysis table
     let { data, error } = await supabase
       .from('website_analysis')
       .select('*')
       .eq('firm_user_id', userId)
       .eq('agent_id', agentId)
       .single();
-      
-    if (error || !data) {
-      // Try with id as firm_user_id
-      const result = await supabase
-        .from('website_analysis')
-        .select('*')
-        .eq('firm_user_id', userId)
-        .eq('agent_id', agentId)
-        .single();
-        
-      data = result.data;
-      error = result.error;
-    }
     
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Error fetching website analysis:', error);
@@ -788,13 +775,42 @@ export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'):
   facebookConnect: boolean;
 }> => {
   try {
+    console.log('🔍 checkSetupStatus: Checking status for userId:', userId, 'agentId:', agentId);
+    
+    // First, get the correct user_id from profiles table
+    const { supabase } = await import('./supabase');
+    
+    let profileUserId = userId;
+    
+    // If userId looks like a UUID (auth id), try to get the profile user_id
+    if (userId.includes('-')) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('id', userId)
+        .single();
+      
+      if (profile?.user_id) {
+        profileUserId = profile.user_id;
+        console.log('🔍 checkSetupStatus: Using profile user_id:', profileUserId, 'instead of auth id:', userId);
+      }
+    }
+    
     const [website, business, solar, calendar, notifications] = await Promise.all([
-      getWebsiteAnalysis(userId, agentId),
-      getBusinessDetails(userId, agentId),
-      getSolarSetup(userId, agentId),
-      getCalendarSetup(userId, agentId),
-      getNotificationPreferences(userId, agentId)
+      getWebsiteAnalysis(profileUserId, agentId),
+      getBusinessDetails(profileUserId, agentId),
+      getSolarSetup(profileUserId, agentId),
+      getCalendarSetup(profileUserId, agentId),
+      getNotificationPreferences(profileUserId, agentId)
     ]);
+    
+    console.log('🔍 checkSetupStatus: Raw data:', {
+      website: !!website,
+      business: !!business,
+      solar: !!solar,
+      calendar: !!calendar,
+      notifications: !!notifications
+    });
     
     return {
       websiteDetails: !!website,
@@ -802,7 +818,7 @@ export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'):
       solarSetup: !!solar,
       calendarSetup: !!calendar,
       notificationPreferences: !!notifications,
-      facebookConnect: false // This might need separate logic
+      facebookConnect: false // This step doesn't exist yet
     };
   } catch (error) {
     console.error('Check setup status error:', error);

@@ -30,8 +30,14 @@ export function SetupStepsSidebar({ currentStep }: SetupStepsSidebarProps) {
   useEffect(() => {
     const loadCompletionStatus = async () => {
       if (user?.id) {
+        console.log('🔍 SetupStepsSidebar: Loading completion status for user:', user.id);
+        console.log('🔍 SetupStepsSidebar: Full user object:', user);
+        
         const status = await checkSetupStatus(user.id);
+        console.log('✅ SetupStepsSidebar: Completion status loaded:', status);
         setCompletionStatus(status);
+      } else {
+        console.log('⚠️ SetupStepsSidebar: No user ID found, user:', user);
       }
     };
     
