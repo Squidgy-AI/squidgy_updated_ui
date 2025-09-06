@@ -118,30 +118,45 @@ export default function WebsiteDetails() {
   // Helper function to parse agent response and extract business information
   const parseAgentResponse = (agentResponse: string) => {
     try {
-      // Try to extract structured information from the agent response
-      const response = agentResponse.toLowerCase();
+      // Clean the response by removing screenshot and favicon links
+      let cleanedResponse = agentResponse;
+      
+      // Remove screenshot links and references
+      cleanedResponse = cleanedResponse.replace(/screenshot.*?(?:can be (?:viewed|accessed|found)|is available).*?\[here\]\([^)]+\)[^.]*\./gi, '');
+      cleanedResponse = cleanedResponse.replace(/(?:I have also captured|captured) a screenshot.*?\[here\]\([^)]+\)[^.]*\./gi, '');
+      cleanedResponse = cleanedResponse.replace(/screenshot.*?https?:\/\/[^\s)]+(?:screenshots|favicons)[^\s)]*[^.]*\./gi, '');
+      
+      // Remove favicon links and references  
+      cleanedResponse = cleanedResponse.replace(/favicon.*?(?:can be (?:viewed|accessed|found)|is available).*?\[here\]\([^)]+\)[^.]*\./gi, '');
+      cleanedResponse = cleanedResponse.replace(/(?:and the |the )?favicon.*?\[here\]\([^)]+\)[^.]*\./gi, '');
+      cleanedResponse = cleanedResponse.replace(/favicon.*?https?:\/\/[^\s)]+(?:screenshots|favicons)[^\s)]*[^.]*\./gi, '');
+      
+      // Remove any remaining Supabase storage links
+      cleanedResponse = cleanedResponse.replace(/https?:\/\/[^\s]*supabase[^\s]*(?:screenshots|favicons)[^\s]*/gi, '');
       
       // Look for company description
-      const companyMatch = agentResponse.match(/company name:\s*([^|]+)/i) || 
-                          agentResponse.match(/description:\s*([^|]+)/i) ||
-                          agentResponse.match(/what.*company.*does[:\s]*([^|]+)/i);
+      const companyMatch = cleanedResponse.match(/company name:\s*([^|]+)/i) || 
+                          cleanedResponse.match(/description:\s*([^|]+)/i) ||
+                          cleanedResponse.match(/what.*company.*does[:\s]*([^|]+)/i);
       
       // Look for value proposition/takeaways
-      const valueMatch = agentResponse.match(/takeaways:\s*([^|]+)/i) ||
-                        agentResponse.match(/value proposition[:\s]*([^|]+)/i);
+      const valueMatch = cleanedResponse.match(/takeaways:\s*([^|]+)/i) ||
+                        cleanedResponse.match(/value proposition[:\s]*([^|]+)/i);
       
       // Look for business niche
-      const nicheMatch = agentResponse.match(/niche:\s*([^|]+)/i) ||
-                        agentResponse.match(/market[:\s]*([^|]+)/i);
+      const nicheMatch = cleanedResponse.match(/niche:\s*([^|]+)/i) ||
+                        cleanedResponse.match(/market[:\s]*([^|]+)/i);
       
-      // Look for tags
-      const tagsMatch = agentResponse.match(/tags:\s*([^|]+)/i);
+      // Look for tags and limit to top 5
+      const tagsMatch = cleanedResponse.match(/tags:\s*([^|]+)/i);
       let extractedTags: string[] = [];
       if (tagsMatch && tagsMatch[1]) {
-        extractedTags = tagsMatch[1].split(/[,.]/).map(tag => tag.trim()).filter(tag => tag.length > 0);
+        const allTags = tagsMatch[1].split(/[,.]/).map(tag => tag.trim()).filter(tag => tag.length > 0);
+        // Limit to top 5 tags only
+        extractedTags = allTags.slice(0, 5);
       }
 
-      // Look for screenshot URL in the response
+      // Extract screenshot URL but don't include Supabase storage links in the cleaned response
       const screenshotMatch = agentResponse.match(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i);
       
       return {
