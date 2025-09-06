@@ -649,7 +649,8 @@ export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'
   try {
     const { supabase } = await import('./supabase');
     
-    console.log('🔍 getWebsiteAnalysis: Using userId directly as firm_user_id:', userId);
+    console.log('🔍 getWebsiteAnalysis: API called with userId:', userId);
+    console.log('🔍 getWebsiteAnalysis: About to query firm_user_id=', userId, 'agent_id=', agentId);
     
     // Use firm_user_id field for website_analysis table  
     let { data, error } = await supabase

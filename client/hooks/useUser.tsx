@@ -53,6 +53,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       try {
         console.log('UserProvider: Starting user initialization...');
         
+        // Clear old localStorage values that might be causing issues
+        const oldUserId = localStorage.getItem('squidgy_user_id');
+        if (oldUserId && oldUserId.includes('40f59821-35fd-49d0-8bc9-9dbdfb2710eb')) {
+          console.log('🔧 Clearing old auth UUID from localStorage:', oldUserId);
+          localStorage.removeItem('squidgy_user_id');
+        }
+        
         
         // Check if we're in development mode
         const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
@@ -63,6 +70,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           // Development mode - create or use existing dev user
           let devUserId = localStorage.getItem('dev_user_id');
           let devUserEmail = localStorage.getItem('dev_user_email') || 'dmacproject123@gmail.com';
+          
+          console.log('🔍 UserProvider Dev: Auth values:', {
+            devUserId,
+            devUserEmail,
+            localStorage_dev_user_id: localStorage.getItem('dev_user_id'),
+            localStorage_dev_user_email: localStorage.getItem('dev_user_email')
+          });
           
           if (!devUserId) {
             devUserId = generateUserId();
@@ -105,6 +119,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           }
           
           console.log('UserProvider: Development mode - setting up dev user');
+          console.log('🔍 UserProvider Dev: Initial state:', {
+            devUserId,
+            devUserEmail,
+            profileData,
+            profileDataUserId: profileData?.user_id
+          });
           
           // ALWAYS use user_id from profiles table in development mode
           let finalUserId = profileData?.user_id;
@@ -132,11 +152,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             }
           }
           
-          console.log('🔍 UserProvider Dev: Final userId:', finalUserId, {
+          console.log('🔍 UserProvider Dev: Final userId decision:', {
+            finalUserId,
+            devUserId, 
             fromProfile: !!profileData?.user_id,
             fromEmailLookup: !profileData?.user_id && finalUserId !== devUserId,
             fallback: finalUserId === devUserId
           });
+          console.log('🔍 UserProvider Dev: Setting userId state to:', finalUserId);
           
           setIsAuthenticated(true);
           setUser({ id: devUserId, email: devUserEmail });
