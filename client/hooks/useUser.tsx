@@ -355,7 +355,33 @@ export const UserProvider = ({ children }: UserProviderProps) => {
                 setUser(authUser);
                 setProfile(retryProfile);
                 
-                const currentUserId = retryProfile?.user_id || authUser.id;
+                // ALWAYS do email lookup to get correct user_id 
+                let currentUserId = retryProfile?.user_id;
+                
+                if (authUser?.email) {
+                  console.log('UserProvider AuthListener Retry: Doing email lookup for:', authUser.email);
+                  try {
+                    const { data: profileData } = await supabase
+                      .from('profiles')
+                      .select('user_id')
+                      .eq('email', authUser.email)
+                      .single();
+                    
+                    if (profileData?.user_id) {
+                      currentUserId = profileData.user_id;
+                      console.log('✅ UserProvider AuthListener Retry: Using user_id from email lookup:', currentUserId);
+                    } else {
+                      currentUserId = authUser.id;
+                    }
+                  } catch (error) {
+                    console.error('❌ UserProvider AuthListener Retry: Email lookup failed:', error);
+                    currentUserId = authUser.id;
+                  }
+                } else {
+                  currentUserId = currentUserId || authUser.id;
+                }
+                
+                console.log('🔍 UserProvider AuthListener Retry: Setting userId:', currentUserId);
                 setUserIdState(currentUserId);
                 localStorage.setItem('squidgy_user_id', currentUserId);
                 
@@ -366,8 +392,37 @@ export const UserProvider = ({ children }: UserProviderProps) => {
                 setUser(authUser);
                 setProfile(userProfile);
                 
-                const currentUserId = userProfile?.user_id || authUser?.id;
+                // ALWAYS do email lookup to get correct user_id 
+                let currentUserId = userProfile?.user_id;
+                
+                if (authUser?.email) {
+                  console.log('UserProvider AuthListener: Doing email lookup for:', authUser.email);
+                  try {
+                    const { data: profileData } = await supabase
+                      .from('profiles')
+                      .select('user_id')
+                      .eq('email', authUser.email)
+                      .single();
+                    
+                    console.log('🔍 UserProvider AuthListener: Email lookup result:', profileData);
+                    
+                    if (profileData?.user_id) {
+                      currentUserId = profileData.user_id;
+                      console.log('✅ UserProvider AuthListener: Using user_id from email lookup:', currentUserId);
+                    } else {
+                      console.log('⚠️ UserProvider AuthListener: No user_id found, using auth fallback');
+                      currentUserId = authUser.id;
+                    }
+                  } catch (error) {
+                    console.error('❌ UserProvider AuthListener: Email lookup failed:', error);
+                    currentUserId = authUser.id;
+                  }
+                } else {
+                  currentUserId = currentUserId || authUser?.id;
+                }
+                
                 if (currentUserId) {
+                  console.log('🔍 UserProvider AuthListener: Setting userId:', currentUserId);
                   setUserIdState(currentUserId);
                   localStorage.setItem('squidgy_user_id', currentUserId);
                   
