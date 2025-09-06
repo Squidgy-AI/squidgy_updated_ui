@@ -349,6 +349,41 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ 
   try {
     const { supabase } = await import('./supabase');
     
+    console.log('🔍 Debugging website analysis save:', {
+      firm_user_id: data.firm_user_id,
+      firm_user_id_type: typeof data.firm_user_id,
+      agent_id: data.agent_id
+    });
+    
+    // First, let's check if this user exists in profiles table
+    const { data: profileCheck, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('user_id', data.firm_user_id)
+      .single();
+    
+    if (profileError || !profileCheck) {
+      console.error('Profile not found for user_id:', data.firm_user_id, profileError);
+      
+      // Try checking by id instead
+      const { data: profileById, error: profileByIdError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email')
+        .eq('id', data.firm_user_id)
+        .single();
+        
+      if (profileByIdError || !profileById) {
+        console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
+        throw new Error('User profile not found. Please ensure you are logged in properly.');
+      } else {
+        console.log('✅ Found profile by id:', profileById);
+        // Use the user_id from the found profile
+        data.firm_user_id = profileById.user_id;
+      }
+    } else {
+      console.log('✅ Found profile by user_id:', profileCheck);
+    }
+    
     // Prepare data for database insert
     const insertData = {
       firm_user_id: data.firm_user_id,
@@ -363,6 +398,8 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ 
       analysis_status: data.analysis_status || 'completed'
     };
 
+    console.log('📝 Final insert data:', insertData);
+
     // Use upsert to insert or update if record already exists
     const { data: result, error } = await supabase
       .from('website_analysis')
@@ -374,9 +411,11 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ 
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Supabase upsert error:', error);
       throw new Error(`Failed to save website analysis: ${error.message}`);
     }
+
+    console.log('✅ Website analysis saved successfully:', result);
 
     return {
       success: true,
