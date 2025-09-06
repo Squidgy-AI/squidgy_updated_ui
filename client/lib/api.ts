@@ -330,3 +330,60 @@ export const callN8NWebhook = async (data: N8NWebhookRequest): Promise<N8NWebhoo
     throw new Error(error instanceof Error ? error.message : 'N8N webhook failed');
   }
 };
+
+// Website Analysis API
+interface WebsiteAnalysisData {
+  firm_user_id: string;
+  agent_id: string;
+  website_url: string;
+  company_description?: string;
+  value_proposition?: string;
+  business_niche?: string;
+  tags?: string[];
+  screenshot_url?: string;
+  favicon_url?: string;
+  analysis_status?: string;
+}
+
+export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { supabase } = await import('./supabase');
+    
+    // Prepare data for database insert
+    const insertData = {
+      firm_user_id: data.firm_user_id,
+      agent_id: data.agent_id || 'SOL',
+      website_url: data.website_url,
+      company_description: data.company_description || null,
+      value_proposition: data.value_proposition || null,
+      business_niche: data.business_niche || null,
+      tags: data.tags || null,
+      screenshot_url: data.screenshot_url || null,
+      favicon_url: data.favicon_url || null,
+      analysis_status: data.analysis_status || 'completed'
+    };
+
+    // Use upsert to insert or update if record already exists
+    const { data: result, error } = await supabase
+      .from('website_analysis')
+      .upsert(insertData, {
+        onConflict: 'firm_user_id,agent_id,website_url',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new Error(`Failed to save website analysis: ${error.message}`);
+    }
+
+    return {
+      success: true,
+      message: 'Website analysis saved successfully'
+    };
+  } catch (error) {
+    console.error('Save website analysis error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save website analysis');
+  }
+};

@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useToast } from '../hooks/use-toast';
 import { useUser } from '../hooks/useUser';
-import { websiteApi, callN8NWebhook } from '../lib/api';
+import { websiteApi, callN8NWebhook, saveWebsiteAnalysis } from '../lib/api';
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
 
@@ -331,29 +331,41 @@ export default function WebsiteDetails() {
   }, [toast]);
 
   const handleContinue = async () => {
-    if (!isReady) return;
+    if (!isReady || !userId) return;
     
     setLoading(true);
     try {
-      // Step 1: Save website analysis data
-      const setupData = {
-        website_url: websiteUrl,
-        company_description: companyDescription,
-        value_proposition: valueProposition,
-        business_niche: businessNiche,
-        tags: tags
-      };
-      
-      // Skip agent creation for now - focus on website analysis flow
-      console.log('Setup data prepared:', setupData);
+      // Step 1: Save website analysis data to database
+      toast({
+        title: "Saving website analysis...",
+        description: "Storing your business information"
+      });
 
-      // Step 2: Create GHL Sub-account and User
+      const websiteAnalysisData = {
+        firm_user_id: userId, // This comes from useUser hook (profile.user_id)
+        agent_id: 'SOL',
+        website_url: websiteUrl.startsWith('http') ? websiteUrl : `https://www.${websiteUrl}`,
+        company_description: companyDescription.trim() || null,
+        value_proposition: valueProposition.trim() || null,
+        business_niche: businessNiche.trim() || null,
+        tags: tags.length > 0 ? tags : null,
+        analysis_status: 'completed'
+      };
+
+      await saveWebsiteAnalysis(websiteAnalysisData);
+      
+      toast({
+        title: "Website analysis saved!",
+        description: "Your business information has been stored successfully"
+      });
+
+      // Step 2: Create GHL Sub-account and User (existing logic)
       toast({
         title: "Creating Go High Level account...",
         description: "Setting up your CRM integration"
       });
 
-      const ghlResult = await createGHLAccount(setupData);
+      const ghlResult = await createGHLAccount(websiteAnalysisData);
       
       if (ghlResult.success) {
         // Step 3: Setup Facebook Integration
