@@ -18,35 +18,17 @@ export default function Login() {
     setLoading(true);
     
     try {
-      // Development bypass - always allow login in development mode
-      if (import.meta.env.VITE_APP_ENV === 'development' || 
-          !import.meta.env.VITE_SUPABASE_URL || 
-          import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co') {
-        console.log('Development mode login bypass');
-        toast.success('Login successful! (Development mode)');
-        
-        // Use existing development user or create one if it doesn't exist
-        let devUserId = localStorage.getItem('dev_user_id');
-        if (!devUserId) {
-          // Generate a proper UUID for development user
-          devUserId = crypto.randomUUID();
-          localStorage.setItem('dev_user_id', devUserId);
-        }
-        
-        // Update email but keep the same user ID
-        localStorage.setItem('dev_user_email', email);
-        setUserId(devUserId);
-        
-        navigate('/');
-        return;
-      }
-      
-      // Try actual authentication
+      // Try actual authentication with Supabase
       const response = await signIn({ email, password });
       
       if (response.needsEmailConfirmation) {
-        toast.success('Please check your email and confirm your account before signing in.');
+        toast.info('Please check your email and confirm your account before signing in.');
         return;
+      }
+      
+      // Set the user ID from the authenticated user
+      if (response.user) {
+        setUserId(response.user.id);
       }
       
       toast.success('Login successful!');
@@ -54,21 +36,16 @@ export default function Login() {
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Fallback to development mode on auth failure
-      console.log('Authentication failed, falling back to development mode');
-      toast.success('Login successful! (Development fallback)');
-      
-      // Use existing development user or create one if it doesn't exist
-      let devUserId = localStorage.getItem('dev_user_id');
-      if (!devUserId) {
-        devUserId = crypto.randomUUID();
-        localStorage.setItem('dev_user_id', devUserId);
+      // Show proper error message to user
+      if (error.message?.includes('Invalid email or password')) {
+        toast.error('Invalid email or password. Please try again.');
+      } else if (error.message?.includes('Too many login attempts')) {
+        toast.error('Too many login attempts. Please wait a few minutes and try again.');
+      } else if (error.message?.includes('Supabase is not configured')) {
+        toast.error('Authentication service is not configured. Please contact support.');
+      } else {
+        toast.error(error.message || 'Login failed. Please try again.');
       }
-      
-      localStorage.setItem('dev_user_email', email);
-      setUserId(devUserId);
-      
-      navigate('/');
     } finally {
       setLoading(false);
     }
