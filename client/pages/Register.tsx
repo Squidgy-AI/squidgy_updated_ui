@@ -31,6 +31,10 @@ export default function Register() {
       
       if (response.needsEmailConfirmation) {
         toast.success('Account created! Please check your email and click the confirmation link to verify your account.');
+        // Redirect to login page after showing the message
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
       } else {
         toast.success('Account created successfully!');
         navigate('/welcome');
