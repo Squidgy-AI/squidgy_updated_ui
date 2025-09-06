@@ -31,7 +31,7 @@ function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
 export default function WebsiteDetails() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, sessionId, agentId, isReady } = useUser();
+  const { user, sessionId, agentId, isReady } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -47,9 +47,18 @@ export default function WebsiteDetails() {
   // Load existing data on mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (userId && !dataLoaded) {
-        console.log('🔍 WebsiteDetails: Using userId directly:', userId);
-        const existingData = await getWebsiteAnalysis(userId);
+      if (user?.email && !dataLoaded) {
+        console.log('🔍 WebsiteDetails: Getting user_id for email:', user.email);
+        
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ WebsiteDetails: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ WebsiteDetails: Using user_id:', profileUserId);
+        const existingData = await getWebsiteAnalysis(profileUserId);
         console.log('🔍 WebsiteDetails: Loaded existing data:', existingData);
         
         if (existingData) {
@@ -69,7 +78,7 @@ export default function WebsiteDetails() {
     };
     
     loadExistingData();
-  }, [userId, dataLoaded]);
+  }, [user?.email, dataLoaded]);
 
   const removeTag = (indexToRemove: number) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));
@@ -181,13 +190,23 @@ export default function WebsiteDetails() {
         formattedUrl = urlObj.toString();
       }
       
-      // Force regenerate user ID if it's in old format
-      let currentUserId = userId;
-      if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-        // Clear old format user ID and let useUser hook regenerate it
-        localStorage.removeItem('dev_user_id');
-        localStorage.removeItem('squidgy_user_id');
-        window.location.reload();
+      if (!user?.email) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to analyze websites",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast({
+          title: "User profile not found",
+          description: "Unable to find user profile. Please contact support.",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -197,7 +216,7 @@ export default function WebsiteDetails() {
 
       // Prepare N8N webhook payload
       const n8nPayload = {
-        user_id: currentUserId,
+        user_id: profileUserId,
         user_mssg: formattedUrl, // Send the website URL as the message
         session_id: `${sessionId}_SOL_${Date.now()}`,
         agent_name: "SOL", // Using SOL as specified
@@ -298,21 +317,41 @@ export default function WebsiteDetails() {
   }, [toast]);
 
   const handleContinue = async () => {
-    if (!isReady || !userId) return;
+    if (!isReady || !user?.email) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to continue",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setLoading(true);
     try {
-      // Step 1: Use userId directly as firm_user_id
-      console.log('🔍 WebsiteDetails Save: Using userId directly:', userId);
+      console.log('🔍 WebsiteDetails Save: Getting user_id for email:', user.email);
       
-      // Step 2: Save website analysis data to database
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast({
+          title: "User profile not found",
+          description: "Unable to save. Please contact support.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ WebsiteDetails Save: Using user_id:', profileUserId);
+      
+      // Save website analysis data to database
       toast({
         title: "Saving website analysis...",
         description: "Storing your business information"
       });
 
       const websiteAnalysisData = {
-        firm_user_id: userId, // Use userId directly as firm_user_id
+        firm_user_id: profileUserId, // Use profileUserId as firm_user_id
         agent_id: 'SOL',
         website_url: websiteUrl.startsWith('http') ? websiteUrl : `https://www.${websiteUrl}`,
         company_description: companyDescription.trim() || null,
@@ -337,7 +376,7 @@ export default function WebsiteDetails() {
         description: "Setting up your CRM integration"
       });
 
-      const ghlResult = await createGHLAccount(websiteAnalysisData);
+      const ghlResult = await createGHLAccount(profileUserId);
       
       if (ghlResult.success) {
         // Step 3: Setup Facebook Integration
@@ -366,7 +405,7 @@ export default function WebsiteDetails() {
     }
   };
 
-  const createGHLAccount = async (businessData: any) => {
+  const createGHLAccount = async (userId: string) => {
     try {
       const randomNum = Math.floor(Math.random() * 1000);
       

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Edit } from "lucide-react";
 import { useEffect, useState } from "react";
-import { checkSetupStatus } from "../lib/api";
+import { checkSetupStatus, getProfileUserId } from "../lib/api";
 import { useUser } from "../hooks/useUser";
 
 interface Step {
@@ -29,20 +29,27 @@ export function SetupStepsSidebar({ currentStep }: SetupStepsSidebarProps) {
   
   useEffect(() => {
     const loadCompletionStatus = async () => {
-      if (user?.id) {
-        console.log('🔍 SetupStepsSidebar: Loading completion status for user:', user.id);
-        console.log('🔍 SetupStepsSidebar: Full user object:', user);
+      if (user?.email) {
+        console.log('🔍 SetupStepsSidebar: Getting user_id for email:', user.email);
         
-        const status = await checkSetupStatus(user.id);
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ SetupStepsSidebar: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ SetupStepsSidebar: Using user_id:', profileUserId);
+        const status = await checkSetupStatus(profileUserId);
         console.log('✅ SetupStepsSidebar: Completion status loaded:', status);
         setCompletionStatus(status);
       } else {
-        console.log('⚠️ SetupStepsSidebar: No user ID found, user:', user);
+        console.log('⚠️ SetupStepsSidebar: No user email found, user:', user);
       }
     };
     
     loadCompletionStatus();
-  }, [user?.id]);
+  }, [user?.email]);
 
   const steps: Step[] = [
     { id: 1, label: "1. Website details", status: "future", path: "/website-details" },

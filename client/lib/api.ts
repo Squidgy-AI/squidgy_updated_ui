@@ -776,32 +776,35 @@ export const getNotificationPreferences = async (userId: string, agentId: string
 };
 
 // Helper function to get the correct user_id from profiles table
-export const getProfileUserId = async (authUserId: string): Promise<string> => {
+// Get the correct user_id from profiles table using email
+export const getProfileUserId = async (email: string): Promise<string | null> => {
   try {
     const { supabase } = await import('./supabase');
     
-    // If userId doesn't look like a UUID (auth id), return as is
-    if (!authUserId.includes('-')) {
-      return authUserId;
-    }
+    console.log('🔍 getProfileUserId: Looking up user_id for email:', email);
     
-    // Get the profile user_id from the auth UUID
-    const { data: profile } = await supabase
+    // Get the profile user_id from the email
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('user_id')
-      .eq('id', authUserId)
+      .eq('email', email)
       .single();
     
+    if (error) {
+      console.error('❌ getProfileUserId: Error:', error);
+      return null;
+    }
+    
     if (profile?.user_id) {
-      console.log('🔍 getProfileUserId: Using profile user_id:', profile.user_id, 'instead of auth id:', authUserId);
+      console.log('✅ getProfileUserId: Found user_id:', profile.user_id, 'for email:', email);
       return profile.user_id;
     }
     
-    console.log('⚠️ getProfileUserId: No profile found, using original userId:', authUserId);
-    return authUserId;
+    console.log('⚠️ getProfileUserId: No profile found for email:', email);
+    return null;
   } catch (error) {
     console.error('Error getting profile user_id:', error);
-    return authUserId;
+    return null;
   }
 };
 

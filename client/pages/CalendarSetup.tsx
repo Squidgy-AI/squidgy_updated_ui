@@ -204,9 +204,18 @@ export default function CalendarSetup() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.id && !dataLoaded) {
-        console.log('🔍 CalendarSetup: Using user.id directly:', user.id);
-        const existingData = await getCalendarSetup(user.id);
+      if (user?.email && !dataLoaded) {
+        console.log('🔍 CalendarSetup: Getting user_id for email:', user.email);
+        
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ CalendarSetup: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ CalendarSetup: Using user_id:', profileUserId);
+        const existingData = await getCalendarSetup(profileUserId);
         if (existingData) {
           setCalendarName(existingData.calendar_name || "");
           setDescription(existingData.description || "");
@@ -234,10 +243,10 @@ export default function CalendarSetup() {
     };
 
     loadExistingData();
-  }, [user?.id, dataLoaded]);
+  }, [user?.email, dataLoaded]);
 
   const handleContinue = async () => {
-    if (!user?.id) {
+    if (!user?.email) {
       toast.error('Please log in to continue');
       return;
     }
@@ -250,9 +259,19 @@ export default function CalendarSetup() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 CalendarSetup Save: Using user.id directly:', user.id);
+      console.log('🔍 CalendarSetup Save: Getting user_id for email:', user.email);
+      
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast.error('Unable to save calendar setup. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('✅ CalendarSetup Save: Using user_id:', profileUserId);
       const calendarSetupData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         calendar_name: calendarName,
         description: description,

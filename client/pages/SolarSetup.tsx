@@ -59,9 +59,18 @@ export default function SolarSetup() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.id && !dataLoaded) {
-        console.log('🔍 SolarSetup: Using user.id directly:', user.id);
-        const existingData = await getSolarSetup(user.id);
+      if (user?.email && !dataLoaded) {
+        console.log('🔍 SolarSetup: Getting user_id for email:', user.email);
+        
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ SolarSetup: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ SolarSetup: Using user_id:', profileUserId);
+        const existingData = await getSolarSetup(profileUserId);
         if (existingData) {
           setInstallationPrice(existingData.installation_price || 0);
           setDealerFee(existingData.dealer_fee || 0);
@@ -96,10 +105,10 @@ export default function SolarSetup() {
     };
 
     loadExistingData();
-  }, [user?.id, dataLoaded]);
+  }, [user?.email, dataLoaded]);
 
   const handleContinue = async () => {
-    if (!user?.id) {
+    if (!user?.email) {
       toast.error('Please log in to continue');
       return;
     }
@@ -107,9 +116,19 @@ export default function SolarSetup() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 SolarSetup Save: Using user.id directly:', user.id);
+      console.log('🔍 SolarSetup Save: Getting user_id for email:', user.email);
+      
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast.error('Unable to save setup. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('✅ SolarSetup Save: Using user_id:', profileUserId);
       const solarSetupData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         installation_price: installationPrice,
         dealer_fee: dealerFee,

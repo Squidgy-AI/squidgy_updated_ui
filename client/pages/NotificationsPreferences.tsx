@@ -97,9 +97,18 @@ export default function NotificationsPreferences() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (user?.id && !dataLoaded) {
-        console.log('🔍 NotificationsPreferences: Using user.id directly:', user.id);
-        const existingData = await getNotificationPreferences(user.id);
+      if (user?.email && !dataLoaded) {
+        console.log('🔍 NotificationsPreferences: Getting user_id for email:', user.email);
+        
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ NotificationsPreferences: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ NotificationsPreferences: Using user_id:', profileUserId);
+        const existingData = await getNotificationPreferences(profileUserId);
         if (existingData) {
           if (existingData.notification_channels) {
             setNotificationChannels(existingData.notification_channels);
@@ -130,7 +139,7 @@ export default function NotificationsPreferences() {
     };
 
     loadExistingData();
-  }, [user?.id, dataLoaded]);
+  }, [user?.email, dataLoaded]);
 
   const toggleChannel = (channel: string) => {
     setNotificationChannels(prev => ({
@@ -147,7 +156,7 @@ export default function NotificationsPreferences() {
   };
 
   const handleContinue = async () => {
-    if (!user?.id) {
+    if (!user?.email) {
       toast.error('Please log in to continue');
       return;
     }
@@ -155,9 +164,19 @@ export default function NotificationsPreferences() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 NotificationsPreferences Save: Using user.id directly:', user.id);
+      console.log('🔍 NotificationsPreferences Save: Getting user_id for email:', user.email);
+      
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast.error('Unable to save preferences. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('✅ NotificationsPreferences Save: Using user_id:', profileUserId);
       const notificationPreferencesData = {
-        firm_user_id: user.id,
+        firm_user_id: profileUserId,
         agent_id: 'SOL',
         email_enabled: notificationChannels.email,
         messenger_enabled: notificationChannels.messenger,

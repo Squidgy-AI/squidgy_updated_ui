@@ -15,7 +15,7 @@ import { useToast } from "../hooks/use-toast";
 export default function BusinessDetails() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, isReady } = useUser();
+  const { user, isReady } = useUser();
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -35,9 +35,18 @@ export default function BusinessDetails() {
   // Load existing data from database on component mount
   useEffect(() => {
     const loadExistingData = async () => {
-      if (userId && !dataLoaded) {
-        console.log('🔍 BusinessDetails: Using userId directly:', userId);
-        const existingData = await getBusinessDetails(userId);
+      if (user?.email && !dataLoaded) {
+        console.log('🔍 BusinessDetails: Getting user_id for email:', user.email);
+        
+        // Get the correct user_id from profiles table using email
+        const profileUserId = await getProfileUserId(user.email);
+        if (!profileUserId) {
+          console.error('❌ BusinessDetails: No user_id found for email:', user.email);
+          return;
+        }
+        
+        console.log('✅ BusinessDetails: Using user_id:', profileUserId);
+        const existingData = await getBusinessDetails(profileUserId);
         if (existingData) {
           setBusinessName(existingData.business_name || "");
           setBusinessEmail(existingData.business_email || "");
@@ -62,7 +71,7 @@ export default function BusinessDetails() {
     };
 
     loadExistingData();
-  }, [userId, dataLoaded]);
+  }, [user?.email, dataLoaded]);
   
   // Handle address method change - clear fields when switching
   const handleAddressMethodChange = (method: string) => {
@@ -93,12 +102,32 @@ export default function BusinessDetails() {
   };
 
   const handleContinue = async () => {
-    if (!isReady || !userId) return;
+    if (!isReady || !user?.email) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to continue",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setLoading(true);
     try {
-      // Use userId directly as firm_user_id
-      console.log('🔍 BusinessDetails Save: Using userId directly:', userId);
+      console.log('🔍 BusinessDetails Save: Getting user_id for email:', user.email);
+      
+      // Get the correct user_id from profiles table using email
+      const profileUserId = await getProfileUserId(user.email);
+      if (!profileUserId) {
+        toast({
+          title: "User profile not found",
+          description: "Unable to save. Please contact support.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ BusinessDetails Save: Using user_id:', profileUserId);
       
       // Save business details data to database
       toast({
@@ -107,7 +136,7 @@ export default function BusinessDetails() {
       });
 
       const businessDetailsData = {
-        firm_user_id: userId, // Use userId directly as firm_user_id
+        firm_user_id: profileUserId, // Use profileUserId as firm_user_id
         agent_id: 'SOL',
         business_name: businessName.trim(),
         business_email: businessEmail.trim(),
