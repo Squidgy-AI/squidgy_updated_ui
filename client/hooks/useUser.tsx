@@ -459,11 +459,18 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   }, []);
 
   const setUserId = (newUserId: string) => {
-    console.log('UserProvider: setUserId called with:', newUserId);
+    console.log('🚨 UserProvider: setUserId called with:', newUserId);
+    console.trace('🚨 Call stack for setUserId:');
     
     // Don't update if it's the same user ID to prevent unnecessary re-renders
     if (newUserId === userId) {
       console.log('UserProvider: Same user ID, skipping update');
+      return;
+    }
+    
+    // GUARD: Prevent overriding correct user_id with auth UUID
+    if (newUserId === '40f59821-35fd-49d0-8bc9-9dbdfb2710eb' && userId === '7a8d7d94-fbb3-4ba1-8d04-cfe08d63c615') {
+      console.log('🛡️ UserProvider: BLOCKED attempt to override correct user_id with auth UUID');
       return;
     }
     
