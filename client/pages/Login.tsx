@@ -26,10 +26,8 @@ export default function Login() {
         return;
       }
       
-      // Set the user ID from the authenticated user
-      if (response.user) {
-        setUserId(response.user.id);
-      }
+      // Don't set userId manually - let the auth state change listener handle it
+      // The auth state change listener will do the email lookup to get correct user_id
       
       toast.success('Login successful!');
       navigate('/');

@@ -468,11 +468,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       return;
     }
     
-    // GUARD: Prevent overriding correct user_id with auth UUID
-    if (newUserId === '40f59821-35fd-49d0-8bc9-9dbdfb2710eb' && userId === '7a8d7d94-fbb3-4ba1-8d04-cfe08d63c615') {
-      console.log('🛡️ UserProvider: BLOCKED attempt to override correct user_id with auth UUID');
-      return;
-    }
+    // Log the setUserId call for debugging
+    console.log('🔍 UserProvider: Setting userId to:', newUserId);
     
     setUserIdState(newUserId);
     localStorage.setItem('squidgy_user_id', newUserId);
