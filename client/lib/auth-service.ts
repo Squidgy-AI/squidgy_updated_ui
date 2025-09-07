@@ -86,7 +86,9 @@ export class AuthService {
           data: {
             full_name: userData.fullName.trim(),
           },
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: redirectUrl,
+          // Uncomment the line below to skip email confirmation (testing only)
+          // skipEmailConfirmation: true
         }
       });
 
@@ -114,25 +116,94 @@ export class AuthService {
 
       // Create profile immediately after user creation
       try {
-        const { data: profile, error: profileError } = await supabase
+        // First check if profile already exists (might be created by trigger)
+        const { data: existingProfile, error: checkError } = await supabase
           .from('profiles')
-          .insert({
-            id: authData.user.id,
-            user_id: uuidv4(),
-            email: authData.user.email,
-            full_name: userData.fullName.trim(),
-            role: 'member',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
+          .select('*')
+          .eq('id', authData.user.id)
           .single();
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
+        let profile = existingProfile;
+
+        // Only create if profile doesn't exist
+        if (!existingProfile && checkError?.code === 'PGRST116') {
+          console.log('Profile does not exist, creating new profile...');
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              user_id: uuidv4(),
+              company_id: uuidv4(), // Generate company_id for new user
+              email: authData.user.email,
+              full_name: userData.fullName.trim(),
+              role: 'member',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            throw new Error('Failed to create user profile');
+          }
+          profile = newProfile;
+        } else if (existingProfile) {
+          console.log('Profile already exists, using existing profile');
+          // Update the existing profile with any missing data
+          if (!existingProfile.user_id || !existingProfile.company_id) {
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                user_id: existingProfile.user_id || uuidv4(),
+                company_id: existingProfile.company_id || uuidv4(),
+                full_name: existingProfile.full_name || userData.fullName.trim(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', authData.user.id)
+              .select()
+              .single();
+            
+            if (!updateError) {
+              profile = updatedProfile;
+            }
+          }
         }
+
+        // Profile created successfully - now trigger GHL registration
+        if (profile) {
+          console.log('✅ Profile created successfully, starting GHL registration...');
+          try {
+            const ghlResponse = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                full_name: userData.fullName.trim(),
+                email: userData.email.toLowerCase()
+              })
+            });
+            
+            const ghlResult = await ghlResponse.json();
+            console.log('📊 GHL Registration Response:', ghlResult);
+            
+            if (ghlResponse.ok && ghlResult.status === 'accepted') {
+              console.log('🚀 GHL account creation started successfully!');
+              console.log('📝 GHL Record ID:', ghlResult.ghl_record_id);
+            } else {
+              console.warn('⚠️ GHL registration failed:', ghlResult);
+              // Don't throw error - user registration was successful
+            }
+          } catch (ghlError) {
+            console.error('❌ GHL registration error:', ghlError);
+            // Don't throw error - user registration was successful
+          }
+        }
+        
       } catch (profileCreationError) {
         console.error('Error creating profile:', profileCreationError);
+        throw new Error('Failed to create user profile');
       }
       
       return {
@@ -175,6 +246,9 @@ export class AuthService {
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password');
+        }
+        if (authError.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link to verify your account before signing in.');
         }
         if (authError.message.includes('rate limit') || 
             authError.message.includes('too many requests') ||

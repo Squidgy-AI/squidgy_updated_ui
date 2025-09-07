@@ -31,7 +31,7 @@ function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
 export default function WebsiteDetails() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, sessionId, agentId, isReady } = useUser();
+  const { userId, sessionId, agentId, isReady, user, profile } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -371,6 +371,30 @@ export default function WebsiteDetails() {
 
   const createGHLAccount = async (userId: string) => {
     try {
+      // Get user info from profile or user object
+      const userEmail = profile?.email || user?.email || 'unknown@example.com';
+      const userFullName = profile?.full_name || user?.user_metadata?.full_name || 'Unknown User';
+      
+      // Use NEW registration endpoint with simplified payload
+      const registrationPayload = {
+        full_name: userFullName,
+        email: userEmail
+      };
+
+      console.log('🚀 Calling NEW GHL registration endpoint:', {
+        endpoint: '/api/ghl/create-subaccount-and-user-registration',
+        payload: registrationPayload
+      });
+
+      const response = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationPayload)
+      });
+
+      /* OLD ENDPOINT CALL - COMMENTED OUT
       const randomNum = Math.floor(Math.random() * 1000);
       
       const ghlPayload = {
@@ -403,18 +427,23 @@ export default function WebsiteDetails() {
         },
         body: JSON.stringify(ghlPayload)
       });
+      */
 
       const result = await response.json();
       
-      if (response.ok && result.status === 'success') {
+      console.log('📊 GHL Registration Response:', result);
+      
+      if (response.ok && result.status === 'accepted') {
+        // NEW endpoint returns different format
         return {
           success: true,
           credentials: {
-            location_id: result.subaccount.location_id,
-            user_id: result.business_user.user_id,
-            user_email: result.business_user.details.email,
-            ghl_automation_email: 'info+zt1rcl49@squidgy.net',
-            ghl_automation_password: 'Dummy@123'
+            ghl_record_id: result.ghl_record_id,
+            user_id: result.user_id,
+            company_id: result.company_id,
+            subaccount_name: result.subaccount_name,
+            check_status_endpoint: result.check_status_endpoint,
+            background_task_started: result.background_task_started
           }
         };
       } else {
