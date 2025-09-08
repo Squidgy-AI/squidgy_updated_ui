@@ -386,7 +386,8 @@ export default function WebsiteDetails() {
         payload: registrationPayload
       });
 
-      const response = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/ghl/create-subaccount-and-user-registration`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
