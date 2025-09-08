@@ -78,12 +78,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
     getUserData();
   }, []);
 
-  // Check for existing integration on mount
-  useEffect(() => {
-    if (firmUserId) {
-      checkIntegrationStatus();
-    }
-  }, [firmUserId]);
+  // Don't check for integration on mount - let user initiate the flow
 
   const checkIntegrationStatus = async () => {
     if (!firmUserId) return;
@@ -355,60 +350,11 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
       {/* Step Content */}
       {step === 'oauth' && (
         <div className="space-y-4">
-          {/* Show different content based on integration status */}
+          {/* Simple flow - just show the buttons */}
           {!firmUserId ? (
             <div className="text-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
               <p className="text-gray-600">Loading user information...</p>
-            </div>
-          ) : integrationStatus === null ? (
-            <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">Checking Facebook integration status...</p>
-            </div>
-          ) : !integrationStatus.exists ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ExternalLink className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h4 className="text-lg font-medium text-yellow-800 mb-2">
-                Registration Required
-              </h4>
-              <p className="text-yellow-700 mb-4">
-                Facebook integration is not set up yet. Please complete the registration process first.
-              </p>
-              <div className="text-sm text-yellow-600">
-                <p>Steps needed:</p>
-                <ol className="list-decimal list-inside mt-2 space-y-1">
-                  <li>Complete user registration</li>
-                  <li>Wait for GHL account setup</li>
-                  <li>Facebook integration will be available</li>
-                </ol>
-              </div>
-            </div>
-          ) : !integrationStatus.has_tokens ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              </div>
-              <h4 className="text-lg font-medium text-blue-800 mb-2">
-                Setting Up Facebook Integration
-              </h4>
-              <p className="text-blue-700 mb-4">
-                Your Facebook integration is being prepared. This process happens automatically after registration.
-              </p>
-              <div className="text-sm text-blue-600">
-                <p><strong>Status:</strong> {integrationStatus.automation_status || 'In progress'}</p>
-                {integrationStatus.automation_completed_at && (
-                  <p className="mt-1">Completed: {new Date(integrationStatus.automation_completed_at).toLocaleString()}</p>
-                )}
-              </div>
-              <button
-                onClick={checkIntegrationStatus}
-                className="mt-4 text-blue-600 hover:text-blue-800 underline text-sm"
-              >
-                Refresh status
-              </button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -416,13 +362,88 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
                 Click the button below to log into your Facebook account in a separate window. Return to this page after.
               </p>
               
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
-                ✅ Facebook integration ready! Location ID: {integrationStatus.ghl_location_id}
-              </div>
-              
               {!oauthUrl ? (
                 <button
-                  onClick={generateOAuthUrl}
+                  onClick={async () => {
+                    // Simple direct OAuth URL generation
+                    setIsLoading(true);
+                    try {
+                      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                      
+                      // First check if we have a GHL location ID
+                      const checkResponse = await fetch(`${backendUrl}/api/facebook/check-integration-status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ firm_user_id: firmUserId })
+                      });
+                      
+                      const checkData = await checkResponse.json();
+                      let locationId = checkData.ghl_location_id;
+                      
+                      if (!locationId) {
+                        // Try to get from ghl_subaccounts table
+                        const ghlResponse = await fetch(`${backendUrl}/api/ghl/get-location-id`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ firm_user_id: firmUserId })
+                        });
+                        
+                        if (ghlResponse.ok) {
+                          const ghlData = await ghlResponse.json();
+                          locationId = ghlData.location_id;
+                        }
+                      }
+                      
+                      if (!locationId) {
+                        toast.error('GHL account setup is still in progress. Please wait a few moments and try again.');
+                        return;
+                      }
+                      
+                      // Generate OAuth URL
+                      const response = await fetch(`${backendUrl}/api/facebook/extract-oauth-params`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          userId: firmUserId,
+                          locationId: locationId
+                        })
+                      });
+                      
+                      const data = await response.json();
+                      console.log('✅ OAuth response data:', data);
+                      
+                      if (data.success && data.params) {
+                        // Build OAuth URL with correct format
+                        const enhancedScope = 'email,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_manage_posts,pages_manage_engagement,pages_read_user_content,business_management,public_profile,read_insights,pages_manage_ads,leads_retrieval,ads_read,pages_messaging,ads_management,instagram_basic,instagram_manage_messages,instagram_manage_comments,catalog_management';
+                        
+                        const oauthParams = new URLSearchParams({
+                          response_type: data.params.response_type || 'code',
+                          client_id: data.params.client_id,
+                          redirect_uri: 'https://services.leadconnectorhq.com/integrations/oauth/finish',
+                          scope: enhancedScope,
+                          state: JSON.stringify({
+                            locationId: locationId,
+                            userId: locationId,  // Use same locationId for both
+                            type: 'facebook',
+                            source: 'squidgy_step1'
+                          }),
+                          logger_id: data.params.logger_id || generateLoggerId()
+                        });
+
+                        const finalUrl = `https://www.facebook.com/v18.0/dialog/oauth?${oauthParams.toString()}`;
+                        setOauthUrl(finalUrl);
+                        console.log('🔗 Generated OAuth URL:', finalUrl);
+                        toast.success('Facebook login ready! Click the button to connect.');
+                      } else {
+                        throw new Error('Invalid OAuth response from server');
+                      }
+                    } catch (error: any) {
+                      console.error('OAuth generation error:', error);
+                      toast.error(error.message || 'Failed to generate Facebook login');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
                   disabled={isLoading}
                   className="w-full flex items-center justify-center space-x-2 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
                 >
@@ -431,7 +452,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
                   ) : (
                     <Facebook className="w-5 h-5" />
                   )}
-                  <span>{isLoading ? 'Generating...' : 'Generate Facebook Login'}</span>
+                  <span>{isLoading ? 'Preparing...' : 'Connect Facebook'}</span>
                 </button>
               ) : (
                 <div className="space-y-3">
