@@ -77,10 +77,10 @@ export default function SolarSetup() {
           setSolarIncentive(existingData.solar_incentive || 0);
           setDataLoaded(true);
         } else {
-          // Set default values if no existing data
+          // Set default values if no existing data (all > 0 except Purchase Options)
           setInstallationPrice(2.00);
           setDealerFee(15.0);
-          setBrokerFee(0.00);
+          setBrokerFee(50.00); // Changed from 0.00 to 50.00
           setFinancingApr(5.0);
           setFinancingTerm(240);
           setEnergyPrice(0.17);
