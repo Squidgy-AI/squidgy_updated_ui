@@ -306,6 +306,23 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       console.log('✅ Found profile by user_id:', profileCheck);
     }
     
+    // Fetch GHL data from ghl_subaccounts table
+    const { data: ghlData, error: ghlError } = await supabase
+      .from('ghl_subaccounts')
+      .select('ghl_location_id, soma_ghl_user_id')
+      .eq('firm_user_id', data.firm_user_id)
+      .eq('agent_id', data.agent_id || 'SOL')
+      .single();
+    
+    if (ghlData) {
+      console.log('✅ Found GHL data:', {
+        ghl_location_id: ghlData.ghl_location_id,
+        ghl_user_id: ghlData.soma_ghl_user_id
+      });
+    } else {
+      console.log('⚠️ No GHL data found for this user and agent');
+    }
+    
     // Check if record exists for UPSERT logic
     const { data: existingRecord } = await supabase
       .from('solar_setup')
@@ -342,7 +359,7 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
     };
 
     // Prepare data for database insert (keeping both individual columns and setup_json)
-    const insertData = {
+    const insertData: any = {
       id: recordId, // Add UUID
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
@@ -364,6 +381,12 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       created_at: createdAt, // Add creation timestamp
       last_updated_timestamp: new Date().toISOString() // Add update timestamp
     };
+    
+    // Add GHL fields if available
+    if (ghlData) {
+      insertData.ghl_location_id = ghlData.ghl_location_id;
+      insertData.ghl_user_id = ghlData.soma_ghl_user_id;
+    }
 
     console.log('📝 Final solar setup insert data:', insertData);
     console.log('🔧 Setup JSON configuration:', setupJson);
