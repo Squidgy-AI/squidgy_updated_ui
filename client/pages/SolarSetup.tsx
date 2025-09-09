@@ -103,6 +103,29 @@ export default function SolarSetup() {
       return;
     }
 
+    // Validate all numeric fields are >= 0 (except Purchase Options which are checkboxes)
+    const numericFields = [
+      { value: installationPrice, name: 'Installation price' },
+      { value: dealerFee, name: 'Dealer fee' },
+      { value: brokerFee, name: 'Broker fee' },
+      { value: financingApr, name: 'Financing APR' },
+      { value: financingTerm, name: 'Financing term' },
+      { value: energyPrice, name: 'Energy price' },
+      { value: yearlyElectricCostIncrease, name: 'Yearly electric cost increase' },
+      { value: installationLifespan, name: 'Installation lifespan' },
+      { value: typicalPanelCount, name: 'Typical panel count' },
+      { value: maxRoofSegments, name: 'Maximum roof segments' },
+      { value: solarIncentive, name: 'Solar incentive' }
+    ];
+
+    const invalidFields = numericFields.filter(field => field.value < 0);
+    
+    if (invalidFields.length > 0) {
+      const fieldNames = invalidFields.map(field => field.name).join(', ');
+      toast.error(`Please ensure all fields have positive values. Invalid fields: ${fieldNames}`);
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -209,6 +232,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={installationPrice}
                   onChange={(e) => setInstallationPrice(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -227,6 +251,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.1"
+                  min="0"
                   value={dealerFee}
                   onChange={(e) => setDealerFee(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -246,6 +271,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="1"
+                  min="0"
                   value={brokerFee}
                   onChange={(e) => setBrokerFee(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-r-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -288,6 +314,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.1"
+                  min="0"
                   value={financingApr}
                   onChange={(e) => setFinancingApr(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -306,6 +333,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="1"
+                  min="0"
                   value={financingTerm}
                   onChange={(e) => setFinancingTerm(parseInt(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -324,6 +352,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={energyPrice}
                   onChange={(e) => setEnergyPrice(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -342,6 +371,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.1"
+                  min="0"
                   value={yearlyElectricCostIncrease}
                   onChange={(e) => setYearlyElectricCostIncrease(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -360,6 +390,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="1"
+                  min="0"
                   value={installationLifespan}
                   onChange={(e) => setInstallationLifespan(parseInt(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -378,6 +409,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="1"
+                  min="0"
                   value={typicalPanelCount}
                   onChange={(e) => setTypicalPanelCount(parseInt(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -396,6 +428,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="1"
+                  min="0"
                   value={maxRoofSegments}
                   onChange={(e) => setMaxRoofSegments(parseInt(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
@@ -414,6 +447,7 @@ export default function SolarSetup() {
                 <input
                   type="number"
                   step="0.1"
+                  min="0"
                   value={solarIncentive}
                   onChange={(e) => setSolarIncentive(parseFloat(e.target.value) || 0)}
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
