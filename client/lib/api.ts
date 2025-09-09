@@ -306,7 +306,24 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       console.log('✅ Found profile by user_id:', profileCheck);
     }
     
-    // Prepare data for database insert
+    // Create setup_json object with proper formatting
+    const setupJson = {
+      brokerFee: data.broker_fee || 0,
+      financingApr: (data.financing_apr || 5) / 100, // Convert percentage to decimal
+      maxRoofSegments: data.max_roof_segments || 4,
+      dealerFeePercent: (data.dealer_fee || 15) / 100, // Convert percentage to decimal
+      energyPricePerKwh: data.energy_price || 0.17,
+      typicalPanelCount: data.typical_panel_count || 40,
+      cashPurchaseEnabled: data.allow_cash ?? true,
+      financingTermMonths: data.financing_term || 240,
+      solarIncentivePercent: (data.solar_incentive || 3) / 100, // Convert percentage to decimal
+      financedPurchaseEnabled: data.allow_financed ?? true,
+      installationPricePerWatt: data.installation_price || 2,
+      installationLifespanYears: data.installation_lifespan || 20,
+      yearlyElectricCostIncreasePercent: (data.yearly_electric_cost_increase || 4) / 100 // Convert percentage to decimal
+    };
+
+    // Prepare data for database insert (keeping both individual columns and setup_json)
     const insertData = {
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
@@ -323,10 +340,12 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       typical_panel_count: data.typical_panel_count,
       max_roof_segments: data.max_roof_segments,
       solar_incentive: data.solar_incentive,
-      setup_status: data.setup_status || 'completed'
+      setup_status: data.setup_status || 'completed',
+      setup_json: setupJson // Add the JSON configuration
     };
 
     console.log('📝 Final solar setup insert data:', insertData);
+    console.log('🔧 Setup JSON configuration:', setupJson);
 
     // Use upsert to insert or update if record already exists
     const { data: result, error } = await supabase
@@ -731,6 +750,32 @@ export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Pr
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching solar setup:', error);
       return null;
+    }
+    
+    // If setup_json exists, merge it with the regular columns for backward compatibility
+    if (data && data.setup_json) {
+      console.log('📊 Found setup_json configuration:', data.setup_json);
+      
+      // Convert from JSON format back to database format if needed
+      // This ensures the UI gets values in the expected format (percentages as numbers, not decimals)
+      const jsonData = data.setup_json;
+      return {
+        ...data,
+        // Override with values from setup_json, converting back to UI format
+        broker_fee: jsonData.brokerFee ?? data.broker_fee,
+        financing_apr: jsonData.financingApr ? jsonData.financingApr * 100 : data.financing_apr, // Convert decimal to percentage
+        max_roof_segments: jsonData.maxRoofSegments ?? data.max_roof_segments,
+        dealer_fee: jsonData.dealerFeePercent ? jsonData.dealerFeePercent * 100 : data.dealer_fee, // Convert decimal to percentage
+        energy_price: jsonData.energyPricePerKwh ?? data.energy_price,
+        typical_panel_count: jsonData.typicalPanelCount ?? data.typical_panel_count,
+        allow_cash: jsonData.cashPurchaseEnabled ?? data.allow_cash,
+        financing_term: jsonData.financingTermMonths ?? data.financing_term,
+        solar_incentive: jsonData.solarIncentivePercent ? jsonData.solarIncentivePercent * 100 : data.solar_incentive, // Convert decimal to percentage
+        allow_financed: jsonData.financedPurchaseEnabled ?? data.allow_financed,
+        installation_price: jsonData.installationPricePerWatt ?? data.installation_price,
+        installation_lifespan: jsonData.installationLifespanYears ?? data.installation_lifespan,
+        yearly_electric_cost_increase: jsonData.yearlyElectricCostIncreasePercent ? jsonData.yearlyElectricCostIncreasePercent * 100 : data.yearly_electric_cost_increase // Convert decimal to percentage
+      };
     }
     
     return data || null;
