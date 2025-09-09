@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 
+// Updated to better match Nominatim's response structure
 interface AddressResult {
   formatted_address: string;
   street_number?: string;
   street_name?: string;
   city?: string;
+  suburb?: string;
   state?: string;
-  state_code?: string;
   postal_code?: string;
   country?: string;
   country_code?: string;
+  lat?: string;
+  lon?: string;
 }
 
 interface AddressAutocompleteProps {
@@ -22,71 +25,30 @@ interface AddressAutocompleteProps {
   disabled?: boolean;
 }
 
-// Mock address data for demonstration
-// In production, this would be replaced with a real geocoding API like Google Places
-const mockAddressData: AddressResult[] = [
-  {
-    formatted_address: "123 Main Street, New York, NY 10001",
-    street_number: "123",
-    street_name: "Main Street",
-    city: "New York",
-    state: "New York",
-    state_code: "NY",
-    postal_code: "10001",
-    country: "United States",
-    country_code: "US"
-  },
-  {
-    formatted_address: "456 Oak Avenue, Los Angeles, CA 90001",
-    street_number: "456",
-    street_name: "Oak Avenue",
-    city: "Los Angeles",
-    state: "California",
-    state_code: "CA",
-    postal_code: "90001",
-    country: "United States",
-    country_code: "US"
-  },
-  {
-    formatted_address: "789 Pine Road, Chicago, IL 60601",
-    street_number: "789",
-    street_name: "Pine Road",
-    city: "Chicago",
-    state: "Illinois",
-    state_code: "IL",
-    postal_code: "60601",
-    country: "United States",
-    country_code: "US"
-  },
-  {
-    formatted_address: "15396 183rd St, Little Falls, MN 56345",
-    street_number: "15396",
-    street_name: "183rd St",
-    city: "Little Falls",
-    state: "Minnesota",
-    state_code: "MN",
-    postal_code: "56345",
-    country: "United States",
-    country_code: "US"
-  },
-  {
-    formatted_address: "321 Elm Street, Houston, TX 77001",
-    street_number: "321",
-    street_name: "Elm Street",
-    city: "Houston",
-    state: "Texas",
-    state_code: "TX",
-    postal_code: "77001",
-    country: "United States",
-    country_code: "US"
-  }
-];
+// Helper to parse Nominatim response into our AddressResult format
+const parseNominatimResponse = (nominatimResult: any): AddressResult => {
+  const address = nominatimResult.address || {};
+  return {
+    formatted_address: nominatimResult.display_name,
+    street_number: address.house_number,
+    street_name: address.road,
+    city: address.city || address.town || address.village || address.hamlet,
+    suburb: address.suburb,
+    state: address.state,
+    postal_code: address.postcode,
+    country: address.country,
+    country_code: address.country_code,
+    lat: nominatimResult.lat,
+    lon: nominatimResult.lon,
+  };
+};
+
 
 export function AddressAutocomplete({
   value,
   onChange,
   onAddressSelect,
-  country = 'US',
+  country = 'US', // Can be used to bias results
   placeholder = 'Start typing your address...',
   disabled = false
 }: AddressAutocompleteProps) {
@@ -96,6 +58,7 @@ export function AddressAutocomplete({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle clicks outside to close suggestions
   useEffect(() => {
@@ -111,7 +74,7 @@ export function AddressAutocomplete({
     };
   }, []);
 
-  // Simulate API call for address suggestions
+  // Fetch address suggestions from Nominatim API
   useEffect(() => {
     if (value.length < 3) {
       setSuggestions([]);
@@ -120,20 +83,55 @@ export function AddressAutocomplete({
     }
 
     setIsLoading(true);
-    
-    // Simulate API delay
-    const timer = setTimeout(() => {
-      // Filter mock data based on input
-      const filtered = mockAddressData.filter(addr =>
-        addr.formatted_address.toLowerCase().includes(value.toLowerCase())
-      );
-      
-      setSuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
-      setIsLoading(false);
-    }, 300);
 
-    return () => clearTimeout(timer);
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          q: value,
+          format: 'json',
+          addressdetails: '1',
+          limit: '5',
+        });
+
+        // Add country code to bias results if available
+        if (country) {
+            params.append('countrycodes', country.toLowerCase());
+        }
+
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+          headers: {
+            'User-Agent': 'SquidgyApp/1.0 (contact@example.com)', // Nominatim requires a user agent
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch from Nominatim API');
+        }
+
+        const data = await response.json();
+        const parsedSuggestions = data.map(parseNominatimResponse);
+        
+        setSuggestions(parsedSuggestions);
+        setShowSuggestions(parsedSuggestions.length > 0);
+      } catch (error) {
+        console.error("Error fetching address suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500); // 500ms debounce delay
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, [value, country]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,15 +139,49 @@ export function AddressAutocomplete({
     setSelectedIndex(-1);
   };
 
-  const handleAddressSelect = (address: AddressResult) => {
-    // Set the formatted address in the input
-    onChange(`${address.street_number} ${address.street_name}`);
-    
-    // Pass the full address data to parent for auto-filling other fields
-    onAddressSelect(address);
-    
-    // Hide suggestions
+  const handleAddressSelect = async (address: AddressResult) => {
     setShowSuggestions(false);
+    setIsLoading(true);
+
+    let finalAddress = address;
+
+    // If we have lat/lon, perform a reverse geocode for more accurate details
+    if (address.lat && address.lon) {
+      try {
+        const params = new URLSearchParams({
+          lat: address.lat,
+          lon: address.lon,
+          format: 'json',
+          addressdetails: '1',
+        });
+
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+          headers: {
+            'User-Agent': 'SquidgyApp/1.0 (contact@example.com)',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch from Nominatim reverse API');
+        }
+
+        const reverseData = await response.json();
+        // Merge the more detailed address info from reverse geocoding
+        finalAddress = parseNominatimResponse(reverseData);
+
+      } catch (error) {
+        console.error("Error during reverse geocoding:", error);
+        // Fallback to the original suggestion if reverse geocoding fails
+      }
+    }
+
+    const streetAddress = [finalAddress.street_number, finalAddress.street_name, finalAddress.suburb].filter(Boolean).join(' ');
+    onChange(streetAddress || finalAddress.formatted_address);
+
+    // Pass the full address data to parent for auto-filling other fields
+    onAddressSelect(finalAddress);
+    
+    setIsLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -204,7 +236,7 @@ export function AddressAutocomplete({
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
           {suggestions.map((suggestion, index) => (
             <div
-              key={index}
+              key={suggestion.lat + suggestion.lon + index} // More stable key
               onClick={() => handleAddressSelect(suggestion)}
               onMouseEnter={() => setSelectedIndex(index)}
               className={`px-4 py-3 cursor-pointer transition-colors ${
@@ -217,10 +249,10 @@ export function AddressAutocomplete({
                 <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0 text-gray-400" />
                 <div className="flex-1">
                   <div className="font-medium text-sm">
-                    {suggestion.street_number} {suggestion.street_name}
+                    {suggestion.formatted_address}
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">
-                    {suggestion.city}, {suggestion.state_code} {suggestion.postal_code}
+                    {[suggestion.city, suggestion.state, suggestion.postal_code].filter(Boolean).join(', ')}
                   </div>
                 </div>
               </div>

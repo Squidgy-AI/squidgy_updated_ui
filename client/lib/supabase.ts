@@ -45,6 +45,7 @@ export interface Profile {
   profile_avatar_url?: string;
   company_id?: string;
   role?: string;
+  ghl_record_id?: string; // Add this line
   created_at?: string;
   updated_at?: string;
 }

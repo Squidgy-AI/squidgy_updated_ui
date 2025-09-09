@@ -341,12 +341,12 @@ export default function BusinessDetails() {
                   value={address}
                   onChange={setAddress}
                   onAddressSelect={(addressData) => {
-                    // Auto-fill the city, state, and postal code
-                    if (addressData.city) setCity(addressData.city);
-                    if (addressData.state) setState(addressData.state);
-                    if (addressData.postal_code) setPostalCode(addressData.postal_code);
-                    // Set the full address
-                    setAddress(`${addressData.street_number} ${addressData.street_name}`);
+                    // Auto-fill all address fields from the detailed selection
+                    const fullStreetAddress = [addressData.street_number, addressData.street_name, addressData.suburb].filter(Boolean).join(' ');
+                    setAddress(fullStreetAddress);
+                    setCity(addressData.city || '');
+                    setState(addressData.state || '');
+                    setPostalCode(addressData.postal_code || '');
                   }}
                   country={country}
                   placeholder="Start typing your address..."

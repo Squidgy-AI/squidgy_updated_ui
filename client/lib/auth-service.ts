@@ -170,35 +170,8 @@ export class AuthService {
           }
         }
 
-        // Profile created successfully - now trigger GHL registration
         if (profile) {
-          console.log('✅ Profile created successfully, starting GHL registration...');
-          try {
-            const ghlResponse = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                full_name: userData.fullName.trim(),
-                email: userData.email.toLowerCase()
-              })
-            });
-            
-            const ghlResult = await ghlResponse.json();
-            console.log('📊 GHL Registration Response:', ghlResult);
-            
-            if (ghlResponse.ok && ghlResult.status === 'accepted') {
-              console.log('🚀 GHL account creation started successfully!');
-              console.log('📝 GHL Record ID:', ghlResult.ghl_record_id);
-            } else {
-              console.warn('⚠️ GHL registration failed:', ghlResult);
-              // Don't throw error - user registration was successful
-            }
-          } catch (ghlError) {
-            console.error('❌ GHL registration error:', ghlError);
-            // Don't throw error - user registration was successful
-          }
+          console.log('✅ Profile created successfully. GHL registration will occur on first sign-in.');
         }
         
       } catch (profileCreationError) {
@@ -217,6 +190,46 @@ export class AuthService {
     } catch (error: any) {
       console.error('Signup error:', error);
       throw new Error(error.message || 'Failed to create account');
+    }
+  }
+
+  private async _registerGhlContact(profile: Profile): Promise<void> {
+    if (profile.ghl_record_id) {
+      console.log('User already registered with GHL:', profile.ghl_record_id);
+      return;
+    }
+
+    try {
+      console.log('Starting GHL registration for user:', profile.email);
+      const ghlResponse = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          full_name: profile.full_name,
+          email: profile.email
+        })
+      });
+
+      const ghlResult = await ghlResponse.json();
+      console.log('GHL Registration Response:', ghlResult);
+
+      if (ghlResponse.ok && ghlResult.status === 'accepted' && ghlResult.ghl_record_id) {
+        console.log('GHL registration successful, updating profile with record ID:', ghlResult.ghl_record_id);
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ ghl_record_id: ghlResult.ghl_record_id, updated_at: new Date().toISOString() })
+          .eq('id', profile.id);
+
+        if (updateError) {
+          console.error('Failed to update profile with GHL record ID:', updateError);
+        }
+      } else {
+        console.warn('GHL registration failed or did not return a record ID:', ghlResult);
+      }
+    } catch (error) {
+      console.error('An error occurred during GHL registration:', error);
     }
   }
 
@@ -244,11 +257,11 @@ export class AuthService {
       });
 
       if (authError) {
+        if (authError.message.includes('Email not confirmed')) {
+          return { user: null, needsEmailConfirmation: true };
+        }
         if (authError.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password');
-        }
-        if (authError.message.includes('Email not confirmed')) {
-          throw new Error('Please check your email and click the confirmation link to verify your account before signing in.');
         }
         if (authError.message.includes('rate limit') || 
             authError.message.includes('too many requests') ||
@@ -271,6 +284,9 @@ export class AuthService {
 
       if (profileError) {
         console.warn('Failed to load user profile:', profileError);
+      } else if (profile) {
+        // Trigger GHL registration only on successful sign-in with a profile
+        this._registerGhlContact(profile);
       }
 
       return {
@@ -397,7 +413,9 @@ export class AuthService {
       }
 
     } catch (error: any) {
-      console.error('Get current user error:', error);
+      if (error.name !== 'AuthSessionMissingError') {
+        console.error('Get current user error:', error);
+      }
       return { user: null, profile: null };
     }
   }
