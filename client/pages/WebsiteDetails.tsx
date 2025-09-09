@@ -43,6 +43,7 @@ export default function WebsiteDetails() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
   
   // Load existing data on mount
   useEffect(() => {
@@ -167,6 +168,7 @@ export default function WebsiteDetails() {
     if (!isReady || !websiteUrl.trim()) return;
     
     setLoading(true);
+    setScreenshotLoading(true);
     try {
       // Ensure URL has protocol and www
       let formattedUrl = websiteUrl;
@@ -240,15 +242,10 @@ export default function WebsiteDetails() {
           setTags(parsedData.tags);
         }
         
-        // Update screenshot URL state and UI element
+        // Update screenshot URL state (React will handle UI update)
         if (parsedData.screenshotUrl) {
           setScreenshotUrl(parsedData.screenshotUrl);
-          console.log('✅ Screenshot URL extracted:', parsedData.screenshotUrl);
-          const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
-          if (screenshotElement) {
-            screenshotElement.src = parsedData.screenshotUrl;
-            screenshotElement.alt = `${websiteUrl} website screenshot`;
-          }
+          console.log('✅ Screenshot URL extracted and state updated:', parsedData.screenshotUrl);
         } else {
           console.log('⚠️ No screenshot URL found in agent response');
         }
@@ -277,6 +274,7 @@ export default function WebsiteDetails() {
       });
     } finally {
       setLoading(false);
+      setScreenshotLoading(false);
     }
   };
 
@@ -296,14 +294,10 @@ export default function WebsiteDetails() {
       if (result.business_niche) setBusinessNiche(result.business_niche);
       if (result.tags && Array.isArray(result.tags)) setTags(result.tags);
       
-      // Update screenshot if URL changed
+      // Update screenshot URL state if provided
       if (result.screenshot_url) {
-        // Update the screenshot in the UI
-        const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
-        if (screenshotElement) {
-          screenshotElement.src = result.screenshot_url;
-          screenshotElement.alt = `${url} website screenshot`;
-        }
+        setScreenshotUrl(result.screenshot_url);
+        console.log('✅ Screenshot URL updated from WebSocket event:', result.screenshot_url);
       }
       
       toast({
@@ -439,14 +433,42 @@ export default function WebsiteDetails() {
 
             {/* Screenshot Section */}
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-text-primary mb-2">Screenshot</label>
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <label className="block text-sm font-semibold text-text-primary mb-2">
+                Screenshot
+                {screenshotUrl && (
+                  <span className="ml-2 text-xs text-green-600 font-normal">
+                    ✓ From website analysis
+                  </span>
+                )}
+              </label>
+              <div className="border border-gray-300 rounded-lg overflow-hidden relative">
+                {screenshotLoading && (
+                  <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
+                    <Loader2 className="w-8 h-8 text-squidgy-purple animate-spin" />
+                    <span className="ml-2 text-sm text-gray-600">Capturing screenshot...</span>
+                  </div>
+                )}
                 <img 
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/f4d168c44c076c21cd4c9f5f8d6e8c8c8cb1fbed?width=840"
-                  alt="RMS Energy website screenshot"
+                  src={screenshotUrl || "https://api.builder.io/api/v1/image/assets/TEMP/f4d168c44c076c21cd4c9f5f8d6e8c8c8cb1fbed?width=840"}
+                  alt={websiteUrl ? `${websiteUrl} website screenshot` : "Website screenshot placeholder"}
                   className="w-full h-64 object-cover"
+                  onLoad={() => setScreenshotLoading(false)}
+                  onError={(e) => {
+                    setScreenshotLoading(false);
+                    // Fallback to placeholder if screenshot fails to load
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== "https://api.builder.io/api/v1/image/assets/TEMP/f4d168c44c076c21cd4c9f5f8d6e8c8c8cb1fbed?width=840") {
+                      target.src = "https://api.builder.io/api/v1/image/assets/TEMP/f4d168c44c076c21cd4c9f5f8d6e8c8c8cb1fbed?width=840";
+                      console.log('⚠️ Screenshot failed to load, using fallback');
+                    }
+                  }}
                 />
               </div>
+              {!screenshotUrl && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Click "Analyze Website" to capture a screenshot of your website
+                </p>
+              )}
             </div>
 
             {/* Website URL Input */}
