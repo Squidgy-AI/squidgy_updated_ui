@@ -327,7 +327,10 @@ export default function WebsiteDetails() {
         analysis_status: 'completed'
       };
 
-      await saveWebsiteAnalysis(websiteAnalysisData);
+      await saveWebsiteAnalysis({
+        ...websiteAnalysisData,
+        isAnalyzeButton: true // Continue button includes screenshots/favicons
+      });
       
       toast({
         title: "Website analysis saved!",

@@ -873,30 +873,31 @@ interface WebsiteAnalysisData {
   analysis_status?: string;
 }
 
-export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ success: boolean; message: string }> => {
+export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyzeButton?: boolean }): Promise<{ success: boolean; message: string }> => {
   try {
     const { supabase } = await import('./supabase');
     
     console.log('🔍 Debugging website analysis save:', {
       firm_user_id: data.firm_user_id,
       firm_user_id_type: typeof data.firm_user_id,
-      agent_id: data.agent_id
+      agent_id: data.agent_id,
+      isAnalyzeButton: data.isAnalyzeButton
     });
     
-    // First, let's check if this user exists in profiles table
-    const { data: profileCheck, error: profileError } = await supabase
+    // Get firm_id from profiles table - REQUIRED field
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('id, user_id, email')
+      .select('id, user_id, email, company_id')
       .eq('user_id', data.firm_user_id)
       .single();
     
-    if (profileError || !profileCheck) {
+    if (profileError || !profileData) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
       const { data: profileById, error: profileByIdError } = await supabase
         .from('profiles')
-        .select('id, user_id, email')
+        .select('id, user_id, email, company_id')
         .eq('id', data.firm_user_id)
         .single();
         
@@ -905,34 +906,65 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData): Promise<{ 
         throw new Error('User profile not found. Please ensure you are logged in properly.');
       } else {
         console.log('✅ Found profile by id:', profileById);
-        // Use the user_id from the found profile
         data.firm_user_id = profileById.user_id;
+        var firm_id = profileById.company_id;
       }
     } else {
-      console.log('✅ Found profile by user_id:', profileCheck);
+      console.log('✅ Found profile by user_id:', profileData);
+      var firm_id = profileData.company_id;
     }
     
-    // Prepare data for database insert
-    const insertData = {
+    // Validate firm_id - cannot be null
+    if (!firm_id) {
+      throw new Error('Company ID not found in user profile. Please contact support.');
+    }
+    
+    // Check if record exists for UPSERT logic
+    const existingRecord = await supabase
+      .from('website_analysis')
+      .select('id, created_at')
+      .eq('firm_user_id', data.firm_user_id)
+      .eq('agent_id', data.agent_id || 'SOL')
+      .eq('website_url', data.website_url)
+      .eq('firm_id', firm_id)
+      .single();
+    
+    // Generate UUID for new records
+    const recordId = existingRecord.data?.id || crypto.randomUUID();
+    const preserveCreatedAt = existingRecord.data?.created_at || new Date().toISOString();
+    
+    // Prepare base data for database upsert
+    const upsertData: any = {
+      id: recordId,
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
+      firm_id: firm_id,
       website_url: data.website_url,
       company_description: data.company_description || null,
       value_proposition: data.value_proposition || null,
       business_niche: data.business_niche || null,
       tags: data.tags || null,
-      screenshot_url: data.screenshot_url || null,
-      favicon_url: data.favicon_url || null,
-      analysis_status: data.analysis_status || 'completed'
+      analysis_status: data.analysis_status || 'completed',
+      created_at: preserveCreatedAt,
+      last_updated_timestamp: new Date().toISOString()
     };
+    
+    // Only include screenshot/favicon URLs when "Analyze" button is clicked
+    if (data.isAnalyzeButton === true) {
+      upsertData.screenshot_url = data.screenshot_url || null;
+      upsertData.favicon_url = data.favicon_url || null;
+      console.log('📸 Including screenshot/favicon URLs (Analyze button clicked)');
+    } else {
+      console.log('📝 Skipping screenshot/favicon URLs (non-Analyze operation)');
+    }
 
-    console.log('📝 Final insert data:', insertData);
+    console.log('📝 Final upsert data:', upsertData);
 
-    // Use upsert to insert or update if record already exists
+    // Use upsert with the correct conflict resolution
     const { data: result, error } = await supabase
       .from('website_analysis')
-      .upsert(insertData, {
-        onConflict: 'firm_user_id,agent_id,website_url',
+      .upsert(upsertData, {
+        onConflict: 'firm_user_id,agent_id,website_url,firm_id',
         ignoreDuplicates: false
       })
       .select()
