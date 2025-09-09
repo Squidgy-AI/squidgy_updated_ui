@@ -306,6 +306,24 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       console.log('✅ Found profile by user_id:', profileCheck);
     }
     
+    // Check if record exists for UPSERT logic
+    const { data: existingRecord } = await supabase
+      .from('solar_setup')
+      .select('id, created_at')
+      .eq('firm_user_id', data.firm_user_id)
+      .eq('agent_id', data.agent_id || 'SOL')
+      .single();
+    
+    // Generate UUID for new records
+    const recordId = existingRecord?.id || crypto.randomUUID();
+    const createdAt = existingRecord?.created_at || new Date().toISOString();
+    
+    if (existingRecord?.id) {
+      console.log('📝 Found existing solar setup record, will update:', existingRecord.id);
+    } else {
+      console.log('🆕 No existing solar setup record, will create new with ID:', recordId);
+    }
+    
     // Create setup_json object with proper formatting
     const setupJson = {
       brokerFee: data.broker_fee || 0,
@@ -325,6 +343,7 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
 
     // Prepare data for database insert (keeping both individual columns and setup_json)
     const insertData = {
+      id: recordId, // Add UUID
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
       installation_price: data.installation_price,
@@ -341,7 +360,9 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       max_roof_segments: data.max_roof_segments,
       solar_incentive: data.solar_incentive,
       setup_status: data.setup_status || 'completed',
-      setup_json: setupJson // Add the JSON configuration
+      setup_json: setupJson, // Add the JSON configuration
+      created_at: createdAt, // Add creation timestamp
+      last_updated_timestamp: new Date().toISOString() // Add update timestamp
     };
 
     console.log('📝 Final solar setup insert data:', insertData);
