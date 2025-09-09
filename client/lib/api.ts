@@ -572,6 +572,22 @@ export const facebookApi = {
   getFacebookConnection: async (userId: string, agentId: string) => {
     return apiClient.get(`/api/facebook/connection/${userId}/${agentId}`);
   },
+
+  // Get Facebook connection status for step completion check
+  getFacebookConnectionStatus: async (firmUserId: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/facebook/get-connection-status?firm_user_id=${firmUserId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  },
 };
 
 // Authentication API endpoints - now using Supabase client-side authentication
@@ -838,13 +854,23 @@ export const checkSetupStatus = async (userId: string, agentId: string = 'SOL'):
       notifications: !!notifications
     });
     
+    // Check Facebook connection status
+    let facebookStatus = false;
+    try {
+      const fbStatus = await facebookApi.getFacebookConnectionStatus(userId);
+      facebookStatus = fbStatus?.is_connected || false;
+    } catch (error) {
+      console.error('Error checking Facebook connection status:', error);
+      facebookStatus = false;
+    }
+
     return {
       websiteDetails: !!website,
       businessDetails: !!business,
       solarSetup: !!solar,
       calendarSetup: !!calendar,
       notificationPreferences: !!notifications,
-      facebookConnect: false // This step doesn't exist yet
+      facebookConnect: facebookStatus
     };
   } catch (error) {
     console.error('Check setup status error:', error);
@@ -919,15 +945,20 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
       throw new Error('Company ID not found in user profile. Please contact support.');
     }
     
-    // Check if record exists for UPSERT logic
+    // Check if user has ANY existing website analysis record (not URL-specific)
     const existingRecord = await supabase
       .from('website_analysis')
-      .select('id, created_at')
+      .select('id, created_at, website_url')
       .eq('firm_user_id', data.firm_user_id)
       .eq('agent_id', data.agent_id || 'SOL')
-      .eq('website_url', data.website_url)
       .eq('firm_id', firm_id)
       .single();
+    
+    if (existingRecord.data) {
+      console.log(`📝 Found existing record for user. Will update website from "${existingRecord.data.website_url}" to "${data.website_url}"`);
+    } else {
+      console.log('🆕 No existing record found. Will create new record.');
+    }
     
     // Generate UUID for new records
     const recordId = existingRecord.data?.id || crypto.randomUUID();
@@ -960,11 +991,11 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
 
     console.log('📝 Final upsert data:', upsertData);
 
-    // Use upsert with the correct conflict resolution
+    // Use upsert - if existing record found, update it; otherwise insert new
     const { data: result, error } = await supabase
       .from('website_analysis')
       .upsert(upsertData, {
-        onConflict: 'firm_user_id,agent_id,website_url,firm_id',
+        onConflict: 'firm_user_id,agent_id,firm_id',  // Removed website_url from conflict
         ignoreDuplicates: false
       })
       .select()
