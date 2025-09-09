@@ -84,6 +84,8 @@ export default function WebsiteDetails() {
   // Helper function to parse agent response and extract business information
   const parseAgentResponse = (agentResponse: string) => {
     try {
+      console.log('🔍 Parsing agent response:', agentResponse);
+      
       // Clean the response by removing screenshot and favicon links
       let cleanedResponse = agentResponse;
       
@@ -122,15 +124,24 @@ export default function WebsiteDetails() {
         extractedTags = allTags.slice(0, 5);
       }
 
-      // Extract screenshot URL but don't include Supabase storage links in the cleaned response
-      const screenshotMatch = agentResponse.match(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i);
+      // Extract screenshot URL from the original response (before cleaning)
+      const screenshotMatch = agentResponse.match(/https?:\/\/[^\s]*supabase[^\s]*\/screenshots\/[^\s]*/i) ||
+                             agentResponse.match(/(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i);
+      
+      // Extract favicon URL from the original response (before cleaning) 
+      const faviconMatch = agentResponse.match(/https?:\/\/[^\s]*supabase[^\s]*\/favicons\/[^\s]*/i) ||
+                          agentResponse.match(/https?:\/\/[^\s]*favicon[^\s]*/i);
+      
+      console.log('🔍 Screenshot match result:', screenshotMatch);
+      console.log('🔍 Favicon match result:', faviconMatch);
       
       return {
         companyDescription: companyMatch ? companyMatch[1].trim() : null,
         valueProposition: valueMatch ? valueMatch[1].trim() : null,
         businessNiche: nicheMatch ? nicheMatch[1].trim() : null,
         tags: extractedTags.length > 0 ? extractedTags : null,
-        screenshotUrl: screenshotMatch ? screenshotMatch[1] : null
+        screenshotUrl: screenshotMatch ? screenshotMatch[0] : null,
+        faviconUrl: faviconMatch ? faviconMatch[0] : null
       };
     } catch (error) {
       console.error('Error parsing agent response:', error);
@@ -139,7 +150,8 @@ export default function WebsiteDetails() {
         valueProposition: null,
         businessNiche: null,
         tags: null,
-        screenshotUrl: null
+        screenshotUrl: null,
+        faviconUrl: null
       };
     }
   };
@@ -228,13 +240,25 @@ export default function WebsiteDetails() {
           setTags(parsedData.tags);
         }
         
-        // Update screenshot if URL is provided
+        // Update screenshot URL state and UI element
         if (parsedData.screenshotUrl) {
+          setScreenshotUrl(parsedData.screenshotUrl);
+          console.log('✅ Screenshot URL extracted:', parsedData.screenshotUrl);
           const screenshotElement = document.querySelector('img[alt="RMS Energy website screenshot"]') as HTMLImageElement;
           if (screenshotElement) {
             screenshotElement.src = parsedData.screenshotUrl;
             screenshotElement.alt = `${websiteUrl} website screenshot`;
           }
+        } else {
+          console.log('⚠️ No screenshot URL found in agent response');
+        }
+        
+        // Update favicon URL state
+        if (parsedData.faviconUrl) {
+          setFaviconUrl(parsedData.faviconUrl);
+          console.log('✅ Favicon URL extracted:', parsedData.faviconUrl);
+        } else {
+          console.log('⚠️ No favicon URL found in agent response');
         }
         
         toast({
