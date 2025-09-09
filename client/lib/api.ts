@@ -1034,6 +1034,23 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
       throw new Error('Company ID not found in user profile. Please contact support.');
     }
     
+    // Fetch GHL data from ghl_subaccounts table
+    const { data: ghlData, error: ghlError } = await supabase
+      .from('ghl_subaccounts')
+      .select('ghl_location_id, soma_ghl_user_id')
+      .eq('firm_user_id', data.firm_user_id)
+      .eq('agent_id', data.agent_id || 'SOL')
+      .single();
+    
+    if (ghlData) {
+      console.log('✅ Found GHL data for website analysis:', {
+        ghl_location_id: ghlData.ghl_location_id,
+        ghl_user_id: ghlData.soma_ghl_user_id
+      });
+    } else {
+      console.log('⚠️ No GHL data found for website analysis');
+    }
+    
     // Check if user has ANY existing website analysis record (not URL-specific)
     const existingRecord = await supabase
       .from('website_analysis')
@@ -1068,6 +1085,12 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
       created_at: preserveCreatedAt,
       last_updated_timestamp: new Date().toISOString()
     };
+    
+    // Add GHL fields if available
+    if (ghlData) {
+      upsertData.ghl_location_id = ghlData.ghl_location_id;
+      upsertData.ghl_user_id = ghlData.soma_ghl_user_id;
+    }
     
     // Only include screenshot/favicon URLs when "Analyze" button is clicked
     if (data.isAnalyzeButton === true) {
