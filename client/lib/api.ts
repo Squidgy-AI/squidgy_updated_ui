@@ -577,8 +577,27 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
       console.log('✅ Found profile by user_id:', profileCheck);
     }
     
+    // Fetch GHL data from ghl_subaccounts table
+    const { data: ghlData, error: ghlError } = await supabase
+      .from('ghl_subaccounts')
+      .select('ghl_location_id, soma_ghl_user_id')
+      .eq('firm_user_id', data.firm_user_id)
+      .eq('agent_id', data.agent_id || 'SOL')
+      .single();
+
+    if (ghlError && ghlError.code !== 'PGRST116') {
+      console.warn('Warning: Could not fetch GHL data:', ghlError);
+    }
+
+    if (ghlData) {
+      console.log('✅ Found GHL data for notification preferences:', ghlData);
+    } else {
+      console.log('⚠️ No GHL data found for firm_user_id:', data.firm_user_id, 'agent_id:', data.agent_id);
+    }
+
     // Prepare data for database insert
     const insertData = {
+      id: crypto.randomUUID(),
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
       email_enabled: data.email_enabled,
@@ -590,7 +609,13 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
       appointment_confirmations: data.appointment_confirmations,
       appointment_reminders: data.appointment_reminders,
       cancellations_reschedules: data.cancellations_reschedules,
-      setup_status: data.setup_status || 'completed'
+      setup_status: data.setup_status || 'completed',
+      created_at: new Date().toISOString(),
+      last_updated_timestamp: new Date().toISOString(),
+      ...(ghlData && {
+        ghl_location_id: ghlData.ghl_location_id,
+        ghl_user_id: ghlData.soma_ghl_user_id
+      })
     };
 
     console.log('📝 Final notification preferences insert data:', insertData);
