@@ -29,6 +29,7 @@ export default function FacebookConnect() {
   const [showPages, setShowPages] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
   const [firmUserId, setFirmUserId] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Get user data on mount
   useEffect(() => {
@@ -282,6 +283,45 @@ export default function FacebookConnect() {
     }
   };
 
+  const handleRetryTokenCapture = async () => {
+    if (!firmUserId) {
+      toast.error('User information not available');
+      return;
+    }
+
+    setIsRetrying(true);
+    try {
+      console.log('🔄 handleRetryTokenCapture: Starting token capture retry for:', firmUserId);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${backendUrl}/api/facebook/retry-token-capture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firm_user_id: firmUserId })
+      });
+
+      console.log('🔄 handleRetryTokenCapture: Response status:', response.status);
+      const result = await response.json();
+      console.log('🔄 handleRetryTokenCapture: Response data:', result);
+
+      if (!response.ok) {
+        throw new Error(result.detail || result.message || 'Failed to start retry');
+      }
+
+      if (result.success) {
+        toast.success('Token refresh started! This may take a few minutes. You can continue or check back later.');
+        console.log('✅ handleRetryTokenCapture: Successfully started retry automation');
+      } else {
+        throw new Error(result.message || 'Failed to start retry automation');
+      }
+    } catch (error: any) {
+      console.error('❌ handleRetryTokenCapture: Error:', error);
+      toast.error(error.message || 'Failed to start token refresh');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -421,17 +461,57 @@ export default function FacebookConnect() {
                       <span className="font-medium text-text-primary">{loggedInUser}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setShowPages(false);
-                      setDidLogin(null);
-                      setPages([]);
-                      setSelectedPages([]);
-                    }}
-                    className="text-sm text-gray-600 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
-                  >
-                    Log out
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setShowPages(false);
+                        setDidLogin(null);
+                        setPages([]);
+                        setSelectedPages([]);
+                      }}
+                      className="text-sm text-gray-600 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                </div>
+
+                {/* Retry Token Capture Button */}
+                <div className="mb-6">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
+                    <div className="text-orange-600 mt-1">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-orange-700 mb-3">
+                        Having trouble with Facebook pages? Click the button below to refresh your Facebook connection tokens.
+                      </p>
+                      <button
+                        onClick={handleRetryTokenCapture}
+                        disabled={isRetrying}
+                        className="bg-orange-500 text-white font-medium text-sm py-2 px-4 rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isRetrying ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Refreshing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh Connection
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Page Selection */}
