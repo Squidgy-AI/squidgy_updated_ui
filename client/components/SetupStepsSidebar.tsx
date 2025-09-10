@@ -13,9 +13,11 @@ interface Step {
 
 interface SetupStepsSidebarProps {
   currentStep: number;
+  onRetryFacebook?: () => void;
+  isRetrying?: boolean;
 }
 
-export function SetupStepsSidebar({ currentStep }: SetupStepsSidebarProps) {
+export function SetupStepsSidebar({ currentStep, onRetryFacebook, isRetrying }: SetupStepsSidebarProps) {
   const navigate = useNavigate();
   const { userId } = useUser();
   const [completionStatus, setCompletionStatus] = useState({
