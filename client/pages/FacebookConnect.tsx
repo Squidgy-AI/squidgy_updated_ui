@@ -76,7 +76,7 @@ export default function FacebookConnect() {
     console.log('🚀 generateOAuthUrl: Starting OAuth URL generation for firmUserId:', firmUserId);
     setIsLoading(true);
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       console.log('🔍 generateOAuthUrl: Using backend URL:', backendUrl);
       
       // First check if we have a GHL location ID
@@ -177,7 +177,7 @@ export default function FacebookConnect() {
     setIsLoading(true);
     try {
       console.log('🔍 handleNext: Getting Facebook pages for user:', firmUserId);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       
       // Directly try to fetch pages using our new simple endpoint
       const response = await fetch(`${backendUrl}/api/facebook/get-pages-from-integration`, {
@@ -239,7 +239,7 @@ export default function FacebookConnect() {
     setIsLoading(true);
     try {
       console.log('🔍 handleConnectFinish: Connecting pages:', selectedPages);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       
       const response = await fetch(`${backendUrl}/api/facebook/connect-selected-pages`, {
         method: 'POST',
@@ -292,7 +292,7 @@ export default function FacebookConnect() {
     setIsRetrying(true);
     try {
       console.log('🔄 handleRetryTokenCapture: Starting token capture retry for:', firmUserId);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       
       const response = await fetch(`${backendUrl}/api/facebook/retry-token-capture`, {
         method: 'POST',
