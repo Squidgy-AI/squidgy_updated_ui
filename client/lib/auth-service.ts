@@ -174,7 +174,8 @@ export class AuthService {
         if (profile) {
           console.log('✅ Profile created successfully, starting GHL registration...');
           try {
-            const ghlResponse = await fetch('http://localhost:8000/api/ghl/create-subaccount-and-user-registration', {
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://squidgy-backend-00f664bf1f3d.herokuapp.com';
+            const ghlResponse = await fetch(`${backendUrl}/api/ghl/create-subaccount-and-user-registration`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
