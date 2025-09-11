@@ -37,11 +37,7 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<SetNewPassword />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          } />
+          <Route path="/" element={<Login />} />
           <Route path="/welcome" element={
             <ProtectedRoute>
               <Index />
