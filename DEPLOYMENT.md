@@ -15,7 +15,6 @@ This application requires specific environment variables to function correctly. 
 
 ### Required Variables for Local Development:
 - `VITE_BACKEND_URL=http://localhost:8000`
-- `VITE_API_BASE_URL=http://localhost:8000`
 - `VITE_SUPABASE_URL=your-actual-supabase-url`
 - `VITE_SUPABASE_ANON_KEY=your-actual-supabase-anon-key`
 - `VITE_FRONTEND_URL=http://localhost:5173`
@@ -32,7 +31,6 @@ Set these in your Vercel project dashboard (Settings → Environment Variables):
 | Variable | Value | Description |
 |----------|-------|-------------|
 | `VITE_BACKEND_URL` | `https://squidgy-backend-00f664bf1f3d.herokuapp.com` | Backend API endpoint |
-| `VITE_API_BASE_URL` | `https://squidgy-backend-00f664bf1f3d.herokuapp.com` | API base URL |
 | `VITE_SUPABASE_URL` | `your-production-supabase-url` | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | `your-production-supabase-anon-key` | Supabase anonymous key |
 | `VITE_FRONTEND_URL` | `https://your-vercel-app.vercel.app` | Your Vercel app URL |
