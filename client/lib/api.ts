@@ -153,38 +153,6 @@ export const websiteApi = {
   },
 };
 
-// Agent Setup APIs
-export const agentApi = {
-  createSetup: async (data: {
-    user_id: string;
-    agent_id: string;
-    agent_name?: string;
-    setup_data: any;
-    setup_type: 'BusinessSetup' | 'SolarSetup' | 'CalendarSetup' | 'NotificationSetup';
-  }) => {
-    return apiClient.post('/api/agents/setup', data);
-  },
-  
-  getUserSetups: async (userId: string) => {
-    return apiClient.get(`/api/agents/setup/${userId}`);
-  },
-  
-  getSpecificSetup: async (userId: string, agentId: string) => {
-    return apiClient.get(`/api/agents/setup/${userId}/${agentId}`);
-  },
-  
-  getSetupProgress: async (userId: string, agentId: string) => {
-    return apiClient.get(`/api/agents/setup/${userId}/${agentId}/progress`);
-  },
-  
-  updateSetup: async (userId: string, agentId: string, data: any) => {
-    return apiClient.put(`/api/agents/setup/${userId}/${agentId}`, data);
-  },
-  
-  deleteSetup: async (userId: string, agentId: string) => {
-    return apiClient.delete(`/api/agents/setup/${userId}/${agentId}`);
-  },
-};
 
 // Business Details APIs
 export const businessApi = {
