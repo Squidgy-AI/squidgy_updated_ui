@@ -77,7 +77,7 @@ export class AuthService {
       // Create auth user with email confirmation
       const redirectUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/confirm-signup`
-        : `${import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/auth/confirm-signup`;
+        : `${import.meta.env.VITE_FRONTEND_URL}/auth/confirm-signup`;
         
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email.toLowerCase(),
@@ -174,7 +174,7 @@ export class AuthService {
         if (profile) {
           console.log('✅ Profile created successfully, starting GHL registration...');
           try {
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://squidgy-backend-00f664bf1f3d.herokuapp.com';
+            const backendUrl = import.meta.env.VITE_BACKEND_URL;
             const ghlResponse = await fetch(`${backendUrl}/api/ghl/create-subaccount-and-user-registration`, {
               method: 'POST',
               headers: {
@@ -296,7 +296,7 @@ export class AuthService {
       // Use Supabase Auth's built-in password reset
       const redirectUrl = typeof window !== 'undefined' 
         ? `${window.location.origin}/reset-password`
-        : `${import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/reset-password`;
+        : `${import.meta.env.VITE_FRONTEND_URL}/reset-password`;
         
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         data.email.toLowerCase(),

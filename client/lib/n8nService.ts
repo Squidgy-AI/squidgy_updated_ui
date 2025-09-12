@@ -4,7 +4,7 @@
  */
 
 // Base URL for n8n webhook
-const N8N_WEBHOOK_BASE = import.meta.env.VITE_N8N_WEBHOOK_URL || '';
+const N8N_WEBHOOK_BASE = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 /**
  * Send message to Seth agent specifically

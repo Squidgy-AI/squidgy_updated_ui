@@ -84,7 +84,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
     if (!firmUserId) return;
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/facebook/check-integration-status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +130,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
       const locationId = integrationStatus.ghl_location_id;
       console.log('📍 Using location ID:', locationId);
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       
       // Use existing endpoint for OAuth generation with proper locationId
       const response = await fetch(`${backendUrl}/api/facebook/extract-oauth-params`, {
@@ -229,7 +229,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
 
     setIsLoading(true);
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/facebook/get-pages-from-integration`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,7 +276,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
 
     setIsLoading(true);
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/facebook/save-selected-pages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -368,7 +368,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
                     // Simple direct OAuth URL generation
                     setIsLoading(true);
                     try {
-                      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                      const backendUrl = import.meta.env.VITE_BACKEND_URL;
                       
                       // First check if we have a GHL location ID
                       const checkResponse = await fetch(`${backendUrl}/api/facebook/check-integration-status`, {

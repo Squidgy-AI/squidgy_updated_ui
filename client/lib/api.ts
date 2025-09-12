@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 
 // API client for Squidgy backend
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface ApiResponse<T = any> {
   data?: T;
@@ -62,7 +62,7 @@ const handleApiResponse = async <T>(response: Response): Promise<T> => {
 export const apiClient = {
   get: async <T>(endpoint: string): Promise<T> => {
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export const apiClient = {
 
   post: async <T>(endpoint: string, data?: any): Promise<T> => {
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export const apiClient = {
 
   put: async <T>(endpoint: string, data?: any): Promise<T> => {
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export const apiClient = {
 
   delete: async <T>(endpoint: string): Promise<T> => {
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -656,7 +656,7 @@ export const facebookApi = {
 
   // Get Facebook connection status for step completion check
   getFacebookConnectionStatus: async (firmUserId: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/facebook/get-connection-status?firm_user_id=${firmUserId}`, {
+    const response = await fetch(`${BACKEND_URL}/api/facebook/get-connection-status?firm_user_id=${firmUserId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -720,7 +720,7 @@ interface N8NWebhookResponse {
 export const callN8NWebhook = async (data: N8NWebhookRequest): Promise<N8NWebhookResponse> => {
   try {
     // Use the N8N webhook URL from environment variables
-    const n8nUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.theaiteam.uk/webhook/c2fcbad6-abc0-43af-8aa8-d1661ff4461d';
+    const n8nUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
     
     const response = await fetch(n8nUrl, {
       method: 'POST',
