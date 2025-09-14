@@ -271,14 +271,49 @@ export class AuthService {
         throw new Error('Failed to sign in');
       }
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
+      // Get user profile - try multiple lookup methods
+      let profile = null;
+      let profileError = null;
+      
+      // First try by id (if profiles.id = auth.user.id)
+      const idResult = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authData.user.id)
         .single();
+      
+      if (idResult.data) {
+        profile = idResult.data;
+        console.log('Found profile by id:', profile);
+      } else {
+        // Try by user_id column
+        const userIdResult = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+        
+        if (userIdResult.data) {
+          profile = userIdResult.data;
+          console.log('Found profile by user_id:', profile);
+        } else if (authData.user.email) {
+          // Finally try by email
+          const emailResult = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', authData.user.email)
+            .single();
+          
+          if (emailResult.data) {
+            profile = emailResult.data;
+            console.log('Found profile by email:', profile);
+          } else {
+            profileError = emailResult.error;
+          }
+        }
+      }
 
-      if (profileError) {
+      if (!profile) {
         console.warn('Failed to load user profile:', profileError);
       }
 
@@ -388,14 +423,46 @@ export class AuthService {
 
       // Try to get profile but don't fail if it doesn't exist
       try {
-        const { data: profile, error: profileError } = await supabase
+        let profile = null;
+        
+        // First try by id (if profiles.id = auth.user.id)
+        const idResult = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        
+        if (idResult.data) {
+          profile = idResult.data;
+          console.log('getCurrentUser: Found profile by id:', profile);
+        } else {
+          // Try by user_id column
+          const userIdResult = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (userIdResult.data) {
+            profile = userIdResult.data;
+            console.log('getCurrentUser: Found profile by user_id:', profile);
+          } else if (user.email) {
+            // Finally try by email
+            const emailResult = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', user.email)
+              .single();
+            
+            if (emailResult.data) {
+              profile = emailResult.data;
+              console.log('getCurrentUser: Found profile by email:', profile);
+            }
+          }
+        }
 
-        if (profileError) {
-          console.warn('Profile not found, continuing with user only:', profileError);
+        if (!profile) {
+          console.warn('getCurrentUser: Profile not found, continuing with user only');
           return { user, profile: null };
         }
 
