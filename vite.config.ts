@@ -17,14 +17,6 @@ export default defineConfig(({ mode }) => ({
     outDir: "dist/spa",
   },
   plugins: [react(), expressPlugin()],
-  define: {
-    // expose the non-VITE_ prefixed variables to the VITE_ prefixed ones
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY),
-    'import.meta.env.VITE_BACKEND_URL': JSON.stringify(process.env.BACKEND_BASE_URL),
-    'import.meta.env.VITE_N8N_WEBHOOK_URL': JSON.stringify(process.env.N8N_WEBHOOK_URL),
-    'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(process.env.FRONTEND_URL),
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
