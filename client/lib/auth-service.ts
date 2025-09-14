@@ -224,6 +224,14 @@ export class AuthService {
   // Sign in user
   async signIn(credentials: SignInData): Promise<{ user: any; profile?: Profile; needsEmailConfirmation?: boolean }> {
     try {
+      // Debug: Log the actual environment values
+      console.log('🔍 Auth Service - Environment check:', {
+        VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+        VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set (hidden)' : 'Not set',
+        urlCheck: !import.meta.env.VITE_SUPABASE_URL,
+        placeholderCheck: import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
+      });
+      
       // Check if Supabase is configured
       if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co') {
         throw new Error('Supabase is not configured. Please add your Supabase credentials to the .env file.');
