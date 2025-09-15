@@ -20,8 +20,19 @@ const SetNewPassword: React.FC = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        console.log('SetNewPassword: Current URL:', window.location.href);
+        console.log('SetNewPassword: Current search params:', window.location.search);
+        
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('SetNewPassword: Checking auth session:', !!session);
+        console.log('SetNewPassword: Checking auth session:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          sessionDetails: session ? {
+            accessToken: !!session.access_token,
+            refreshToken: !!session.refresh_token,
+            expiresAt: session.expires_at
+          } : null
+        });
         
         if (session?.user) {
           setIsAuthenticated(true);
@@ -33,16 +44,39 @@ const SetNewPassword: React.FC = () => {
           const isPasswordReset = urlParams.get('type') === 'recovery';
           const hasAccessToken = urlParams.get('access_token');
           const hasRefreshToken = urlParams.get('refresh_token');
+          const hasCode = urlParams.get('code');
           
           console.log('SetNewPassword: URL params check:', {
+            fullURL: window.location.href,
+            search: window.location.search,
+            hash: window.location.hash,
             type: urlParams.get('type'),
             hasAccessToken: !!hasAccessToken,
             hasRefreshToken: !!hasRefreshToken,
-            allParams: Object.fromEntries(urlParams.entries())
+            hasCode: !!hasCode,
+            allParams: Object.fromEntries(urlParams.entries()),
+            allSearchParams: window.location.search,
+            allHashParams: window.location.hash
           });
           
-          // If we have auth tokens or type=recovery, wait a bit for session to be established
-          if ((isPasswordReset || hasAccessToken || hasRefreshToken) && authRetryCount < 3) {
+          // Also check URL fragment (hash) for auth parameters
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const hashAccessToken = hashParams.get('access_token');
+          const hashRefreshToken = hashParams.get('refresh_token');
+          const hashType = hashParams.get('type');
+          
+          console.log('SetNewPassword: Hash params check:', {
+            hashType,
+            hasHashAccessToken: !!hashAccessToken,
+            hasHashRefreshToken: !!hashRefreshToken,
+            allHashParams: Object.fromEntries(hashParams.entries())
+          });
+          
+          // If we have auth tokens or type=recovery in either URL or hash, wait a bit for session to be established
+          const hasAuthParams = isPasswordReset || hasAccessToken || hasRefreshToken || 
+                               hashType === 'recovery' || hashAccessToken || hashRefreshToken || hasCode;
+          
+          if (hasAuthParams && authRetryCount < 3) {
             console.log(`SetNewPassword: Found auth parameters, waiting for session... (attempt ${authRetryCount + 1}/3)`);
             // Give Supabase a moment to establish the session
             setTimeout(() => {
@@ -51,11 +85,19 @@ const SetNewPassword: React.FC = () => {
             }, 1000);
           } else if (authRetryCount >= 3) {
             console.log('SetNewPassword: Max retries reached, session not established');
-            toast.error('Unable to verify password reset link. Please request a new password reset.');
-            navigate('/forgot-password');
+            console.log('SetNewPassword: Allowing access to reset page anyway - auth will be checked on form submit');
+            // Allow access to the reset page, but authentication will be required for form submission
+            setIsAuthenticated(false); // Keep as false so form submission will check auth
           } else {
-            toast.error('Invalid password reset link. Please request a new password reset.');
-            navigate('/forgot-password');
+            console.log('SetNewPassword: No auth parameters found, checking if this is direct access to reset page');
+            // If user is directly accessing /reset-password, allow it but require auth for form submission
+            if (window.location.pathname === '/reset-password') {
+              console.log('SetNewPassword: Direct access to reset page allowed');
+              setIsAuthenticated(false); // Keep as false so form submission will check auth
+            } else {
+              toast.error('Invalid password reset link. Please request a new password reset.');
+              navigate('/forgot-password');
+            }
           }
         }
       } catch (error) {
@@ -115,9 +157,24 @@ const SetNewPassword: React.FC = () => {
       return;
     }
 
-    if (!isAuthenticated) {
-      toast.error('Not authenticated. Please use a valid password reset link.');
-      return;
+    // Check authentication status again before submitting
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        // Try to get session from URL parameters if available
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        if (!urlParams.has('access_token') && !hashParams.has('access_token') && 
+            !urlParams.has('code') && !urlParams.get('type') === 'recovery' && 
+            !hashParams.get('type') === 'recovery') {
+          toast.error('Not authenticated. Please use a valid password reset link.');
+          return;
+        }
+        console.log('SetNewPassword: No active session but auth parameters present, attempting password update anyway');
+      }
+    } catch (error) {
+      console.error('SetNewPassword: Error checking session before submit:', error);
     }
 
     setLoading(true);
