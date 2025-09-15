@@ -54,6 +54,10 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       try {
         console.log('UserProvider: Starting user initialization...');
         
+        // Quick check for existing session to prevent unnecessary redirects
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('UserProvider: Quick session check:', !!session);
+        
         // Clear old localStorage values that might be causing issues
         const oldUserId = localStorage.getItem('squidgy_user_id');
         if (oldUserId && oldUserId.includes('40f59821-35fd-49d0-8bc9-9dbdfb2710eb')) {
@@ -191,6 +195,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         
         // Production mode - check Supabase authentication with retry logic
         console.log('UserProvider: Production mode - checking Supabase auth');
+        
+        // If we already found a session, set authenticated immediately to prevent redirect
+        if (session?.user) {
+          console.log('UserProvider: Session exists, setting authenticated state immediately');
+          setIsAuthenticated(true);
+          setUser(session.user);
+        }
         
         let retryCount = 0;
         const maxRetries = 3;

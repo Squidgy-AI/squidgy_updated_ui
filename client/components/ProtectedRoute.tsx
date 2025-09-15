@@ -6,17 +6,18 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isReady } = useUser();
+  const { isAuthenticated, isReady, user } = useUser();
 
-  console.log('ProtectedRoute: Using UserProvider state:', { isAuthenticated, isReady });
+  console.log('ProtectedRoute: Using UserProvider state:', { isAuthenticated, isReady, hasUser: !!user });
 
-  // Show loading spinner while user context is initializing
+  // IMPORTANT: Always wait for isReady before making any navigation decisions
+  // This prevents redirecting to login while auth is still being checked
   if (!isReady) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Checking authentication...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -27,9 +28,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
                        !import.meta.env.VITE_SUPABASE_URL || 
                        import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
 
-  // In development mode, always allow access
+  // Only redirect to login AFTER we're sure auth check is complete (isReady = true)
   if (!isAuthenticated && !isDevelopment) {
-    console.log('ProtectedRoute: Redirecting to login');
+    console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
