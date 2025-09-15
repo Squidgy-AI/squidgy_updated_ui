@@ -67,22 +67,8 @@ export function UserAccountDropdown() {
         className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
         aria-label="Account menu"
       >
-        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200">
-          {avatarUrl ? (
-            <img 
-              src={avatarUrl} 
-              alt={displayName}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Fallback to gradient with icon if image fails to load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-          ) : null}
-          <div className={`w-full h-full bg-squidgy-gradient flex items-center justify-center ${avatarUrl ? 'hidden' : ''}`}>
-            <User className="w-4 h-4 text-white" />
-          </div>
+        <div className="w-8 h-8 bg-squidgy-gradient rounded-full flex items-center justify-center">
+          <User className="w-4 h-4 text-white" />
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
