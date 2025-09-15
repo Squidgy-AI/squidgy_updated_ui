@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, X, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { resetPassword } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
 const SetNewPassword: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +19,7 @@ const SetNewPassword: React.FC = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         console.log('SetNewPassword: Checking auth session:', !!session);
         
         if (session?.user) {
