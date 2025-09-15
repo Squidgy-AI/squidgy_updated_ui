@@ -24,6 +24,8 @@ interface ResetPasswordData {
 }
 
 export class AuthService {
+  private userCache: { user: any; profile: any | null; timestamp: number } | null = null;
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
   
   // Email validation helper
   private isValidEmail(email: string): boolean {
@@ -391,6 +393,9 @@ export class AuthService {
   // Sign out user
   async signOut(): Promise<void> {
     try {
+      // Clear cache first
+      this.clearUserCache();
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
@@ -401,17 +406,24 @@ export class AuthService {
     }
   }
 
-  // Get current user session
+  // Clear user cache (call this on logout)
+  clearUserCache() {
+    this.userCache = null;
+  }
+
+  // Get current user session with caching
   async getCurrentUser(): Promise<{ user: any; profile: Profile | null }> {
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('getCurrentUser timeout')), 3000);
-      });
+      // Check cache first
+      if (this.userCache && (Date.now() - this.userCache.timestamp) < this.CACHE_DURATION) {
+        console.log('getCurrentUser: Using cached user data');
+        return { user: this.userCache.user, profile: this.userCache.profile };
+      }
 
-      const authPromise = supabase.auth.getUser();
-      
-      const { data: { user }, error: userError } = await Promise.race([authPromise, timeoutPromise]) as any;
+      console.log('getCurrentUser: Fetching fresh user data');
+
+      // Get user from Supabase (no timeout - let it complete naturally)
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
         throw userError;
@@ -461,15 +473,18 @@ export class AuthService {
           }
         }
 
-        if (!profile) {
-          console.warn('getCurrentUser: Profile not found, continuing with user only');
-          return { user, profile: null };
-        }
+        // Cache the result
+        const result = { user, profile };
+        this.userCache = { user, profile, timestamp: Date.now() };
+        console.log('getCurrentUser: Cached user data for future calls');
 
-        return { user, profile };
+        return result;
       } catch (profileError) {
         console.warn('Profile fetch failed, continuing with user only:', profileError);
-        return { user, profile: null };
+        // Cache even if profile failed - at least we have the user
+        const result = { user, profile: null };
+        this.userCache = { user, profile: null, timestamp: Date.now() };
+        return result;
       }
 
     } catch (error: any) {

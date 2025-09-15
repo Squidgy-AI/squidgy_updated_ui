@@ -351,98 +351,71 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           
           if (event === 'SIGNED_IN' && session?.user) {
             try {
-              console.log('UserProvider: User signed in, fetching profile...');
+              console.log('UserProvider: User signed in via auth state change');
               
-              // Wait a bit for profile to be created if it's a new user
-              await new Promise(resolve => setTimeout(resolve, 500));
+              // Use the session user directly instead of calling getCurrentUser
+              const authUser = session.user;
               
-              const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
-              
-              // If profile is missing, wait and try again
-              if (authUser && !userProfile) {
-                console.log('UserProvider: Profile missing, retrying...');
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                const { profile: retryProfile } = await authService.getCurrentUser();
+              // Only get profile data, don't call getCurrentUser
+              let userProfile = null;
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', authUser.id)
+                  .single();
                 
-                setIsAuthenticated(true);
-                setUser(authUser);
-                setProfile(retryProfile);
-                
-                // ALWAYS do email lookup to get correct user_id 
-                let currentUserId = retryProfile?.user_id;
-                
-                if (authUser?.email) {
-                  console.log('UserProvider AuthListener Retry: Doing email lookup for:', authUser.email);
-                  try {
-                    const { data: profileData } = await supabase
-                      .from('profiles')
-                      .select('user_id')
-                      .eq('email', authUser.email)
-                      .single();
-                    
-                    if (profileData?.user_id) {
-                      currentUserId = profileData.user_id;
-                      console.log('✅ UserProvider AuthListener Retry: Using user_id from email lookup:', currentUserId);
-                    } else {
-                      currentUserId = authUser.id;
-                    }
-                  } catch (error) {
-                    console.error('❌ UserProvider AuthListener Retry: Email lookup failed:', error);
-                    currentUserId = authUser.id;
-                  }
+                if (!profile && authUser.email) {
+                  // Fallback to email lookup
+                  const emailResult = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', authUser.email)
+                    .single();
+                  userProfile = emailResult.data;
                 } else {
-                  currentUserId = currentUserId || authUser.id;
+                  userProfile = profile;
                 }
-                
-                console.log('🔍 UserProvider AuthListener Retry: Setting userId:', currentUserId);
-                setUserIdState(currentUserId);
-                localStorage.setItem('squidgy_user_id', currentUserId);
-                
-                const currentAgentId = `agent_${currentUserId}`;
-                setAgentIdState(currentAgentId);
-              } else {
-                setIsAuthenticated(true);
-                setUser(authUser);
-                setProfile(userProfile);
-                
-                // ALWAYS do email lookup to get correct user_id 
-                let currentUserId = userProfile?.user_id;
-                
-                if (authUser?.email) {
-                  console.log('UserProvider AuthListener: Doing email lookup for:', authUser.email);
-                  try {
-                    const { data: profileData } = await supabase
-                      .from('profiles')
-                      .select('user_id')
-                      .eq('email', authUser.email)
-                      .single();
-                    
-                    console.log('🔍 UserProvider AuthListener: Email lookup result:', profileData);
-                    
-                    if (profileData?.user_id) {
-                      currentUserId = profileData.user_id;
-                      console.log('✅ UserProvider AuthListener: Using user_id from email lookup:', currentUserId);
-                    } else {
-                      console.log('⚠️ UserProvider AuthListener: No user_id found, using auth fallback');
-                      currentUserId = authUser.id;
-                    }
-                  } catch (error) {
-                    console.error('❌ UserProvider AuthListener: Email lookup failed:', error);
-                    currentUserId = authUser.id;
-                  }
-                } else {
-                  currentUserId = currentUserId || authUser?.id;
-                }
-                
-                if (currentUserId) {
-                  console.log('🔍 UserProvider AuthListener: Setting userId:', currentUserId);
-                  setUserIdState(currentUserId);
-                  localStorage.setItem('squidgy_user_id', currentUserId);
-                  
-                  const currentAgentId = `agent_${currentUserId}`;
-                  setAgentIdState(currentAgentId);
-                }
+              } catch (profileError) {
+                console.warn('Profile fetch failed in auth listener:', profileError);
               }
+              
+              setIsAuthenticated(true);
+              setUser(authUser);
+              setProfile(userProfile);
+              
+              // ALWAYS do email lookup to get correct user_id 
+              let currentUserId = userProfile?.user_id;
+              
+              if (authUser?.email) {
+                console.log('UserProvider AuthListener: Doing email lookup for:', authUser.email);
+                try {
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('user_id')
+                    .eq('email', authUser.email)
+                    .single();
+                  
+                  if (profileData?.user_id) {
+                    currentUserId = profileData.user_id;
+                    console.log('✅ UserProvider AuthListener: Using user_id from email lookup:', currentUserId);
+                  } else {
+                    currentUserId = authUser.id;
+                  }
+                } catch (error) {
+                  console.error('❌ UserProvider AuthListener: Email lookup failed:', error);
+                  currentUserId = authUser.id;
+                }
+              } else {
+                currentUserId = currentUserId || authUser.id;
+              }
+              
+              console.log('🔍 UserProvider AuthListener: Setting userId:', currentUserId);
+              setUserIdState(currentUserId);
+              localStorage.setItem('squidgy_user_id', currentUserId);
+              
+              const currentAgentId = `agent_${currentUserId}`;
+              setAgentIdState(currentAgentId);
               
               console.log('UserProvider: Auth state updated successfully');
             } catch (error) {
