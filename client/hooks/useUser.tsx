@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../lib/auth-service';
 import { supabase } from '../lib/supabase';
+import { sessionManager } from '../lib/session-manager';
 
 // Generate a unique session ID
 const generateSessionId = (): string => {
@@ -181,6 +182,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           setAgentIdState(`agent_${finalUserId}`);
           localStorage.setItem('squidgy_user_id', finalUserId);
           
+          // Start session monitoring even in dev mode
+          sessionManager.startSessionMonitoring();
+          
           setIsReady(true);
           return;
         }
@@ -269,11 +273,17 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           
           const currentAgentId = `agent_${currentUserId}`;
           setAgentIdState(currentAgentId);
+          
+          // Start session monitoring
+          sessionManager.startSessionMonitoring();
         } else {
           console.log('UserProvider: No authenticated user found');
           setIsAuthenticated(false);
           setUser(null);
           setProfile(null);
+          
+          // Stop session monitoring if no user
+          sessionManager.stopSessionMonitoring();
         }
         
         // Generate session ID
@@ -504,6 +514,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       console.error('Error signing out:', error);
     }
     
+    // Stop session monitoring
+    sessionManager.stopSessionMonitoring();
+    
     setUserIdState('');
     setSessionIdState('');
     setAgentIdState('');
@@ -514,6 +527,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     localStorage.removeItem('squidgy_session_id');
     localStorage.removeItem('dev_user_id');
     localStorage.removeItem('dev_user_email');
+    localStorage.removeItem('session_expiry_warning');
     setIsReady(true); // Keep ready state true to prevent re-initialization
   };
 
