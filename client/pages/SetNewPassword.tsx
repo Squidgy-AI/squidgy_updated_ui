@@ -180,14 +180,59 @@ const SetNewPassword: React.FC = () => {
     setLoading(true);
     
     try {
-      // Use Supabase's updateUser directly since user is already authenticated via magic link
+      // First, try to get the current session
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('SetNewPassword: Session error:', sessionError);
+      }
+      
+      console.log('SetNewPassword: Session before password update:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id
+      });
+      
+      // If no session, try to establish one from URL parameters
+      if (!session?.user) {
+        console.log('SetNewPassword: No session found, attempting to establish from URL params...');
+        
+        // Check for auth tokens in URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        if (accessToken) {
+          console.log('SetNewPassword: Found tokens in URL hash, setting session...');
+          try {
+            const { data, error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            });
+            
+            if (setSessionError) {
+              console.error('SetNewPassword: Error setting session:', setSessionError);
+            } else {
+              session = data.session;
+              console.log('SetNewPassword: Session established from URL tokens');
+            }
+          } catch (tokenError) {
+            console.error('SetNewPassword: Error with token session:', tokenError);
+          }
+        }
+      }
+      
+      // Use Supabase's updateUser directly since user should be authenticated via magic link
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
       if (error) {
+        console.error('SetNewPassword: Password update error:', error);
         throw error;
       }
+      
+      console.log('SetNewPassword: Password updated successfully');
 
       setIsSuccess(true);
       toast.success('Password reset successfully!');
