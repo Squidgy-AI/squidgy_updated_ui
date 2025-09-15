@@ -27,3 +27,5 @@ dist-ssr
 .env
 
 vortex-space/
+.env_production
+.env_backup_farzin

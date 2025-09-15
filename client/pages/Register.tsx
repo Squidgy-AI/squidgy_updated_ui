@@ -172,11 +172,12 @@ export default function Register() {
 
           {/* Google Sign Up */}
           <button
-            onClick={() => console.log('Google signup')}
-            className="w-full flex items-center justify-center gap-3 px-[17px] py-[13px] border border-[#D1D5DC] rounded-[10px] mb-3 hover:bg-gray-50 transition-colors"
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-3 px-[17px] py-[13px] border border-[#E5E7EB] rounded-[10px] mb-3 bg-gray-100 cursor-not-allowed opacity-60"
           >
             <GoogleIcon />
-            <span className="text-[15px] text-[#364153] font-['Open_Sans']">Continue with Google</span>
+            <span className="text-[15px] text-[#9CA3AF] font-['Open_Sans']">Continue with Google</span>
           </button>
 
           {/* Divider */}
