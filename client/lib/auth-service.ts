@@ -340,6 +340,7 @@ export class AuthService {
       // Use Supabase Auth's built-in password reset
       // Always use production URL for password reset emails to avoid localhost issues
       const redirectUrl = `${import.meta.env.VITE_FRONTEND_URL}/reset-password`;
+      console.log('🔗 Password reset redirect URL:', redirectUrl);
         
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         data.email.toLowerCase(),
