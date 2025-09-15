@@ -197,10 +197,14 @@ const SetNewPassword: React.FC = () => {
       if (!session?.user) {
         console.log('SetNewPassword: No session found, attempting to establish from URL params...');
         
-        // Check for auth tokens in URL hash
+        // Check for auth tokens in URL hash first
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
+        
+        // Check for code in URL search params
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
         
         if (accessToken) {
           console.log('SetNewPassword: Found tokens in URL hash, setting session...');
@@ -218,6 +222,20 @@ const SetNewPassword: React.FC = () => {
             }
           } catch (tokenError) {
             console.error('SetNewPassword: Error with token session:', tokenError);
+          }
+        } else if (code) {
+          console.log('SetNewPassword: Found code parameter, exchanging for session...');
+          try {
+            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            
+            if (exchangeError) {
+              console.error('SetNewPassword: Error exchanging code:', exchangeError);
+            } else {
+              session = data.session;
+              console.log('SetNewPassword: Session established from code exchange');
+            }
+          } catch (codeError) {
+            console.error('SetNewPassword: Error with code exchange:', codeError);
           }
         }
       }
