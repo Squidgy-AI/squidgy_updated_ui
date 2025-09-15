@@ -356,6 +356,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
               // Use the session user directly instead of calling getCurrentUser
               const authUser = session.user;
               
+              // Check if this is an email confirmation
+              const urlParams = new URLSearchParams(window.location.search);
+              const isEmailConfirmation = urlParams.get('type') === 'signup' || 
+                                        urlParams.get('type') === 'email_confirmation';
+              
+              console.log('UserProvider: Email confirmation detected:', isEmailConfirmation);
+              
               // Only get profile data, don't call getCurrentUser
               let userProfile = null;
               try {
@@ -378,6 +385,30 @@ export const UserProvider = ({ children }: UserProviderProps) => {
                 }
               } catch (profileError) {
                 console.warn('Profile fetch failed in auth listener:', profileError);
+              }
+              
+              // If this is an email confirmation and we have a profile, update email_confirmed
+              if (isEmailConfirmation && userProfile) {
+                try {
+                  console.log('UserProvider: Updating email_confirmed to true for user:', authUser.email);
+                  const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                      email_confirmed: true,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userProfile.id);
+                  
+                  if (updateError) {
+                    console.error('Failed to update email_confirmed:', updateError);
+                  } else {
+                    console.log('✅ Email confirmation status updated successfully');
+                    // Update the local profile object
+                    userProfile = { ...userProfile, email_confirmed: true };
+                  }
+                } catch (confirmError) {
+                  console.error('Error updating email confirmation:', confirmError);
+                }
               }
               
               setIsAuthenticated(true);
