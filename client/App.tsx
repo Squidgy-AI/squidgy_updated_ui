@@ -5,9 +5,10 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { UserProvider } from "@/hooks/useUser";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from './pages/Register';
@@ -25,6 +26,36 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Component to handle auth redirects
+const AuthHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleAuthRedirect = () => {
+      const urlParams = new URLSearchParams(location.search);
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+      const type = urlParams.get('type');
+
+      // If there's an auth code, this might be a password reset callback
+      if (code && !error) {
+        console.log('Auth callback detected, type:', type);
+        
+        // For password reset, redirect to reset password page
+        if (type === 'recovery' || location.pathname === '/') {
+          console.log('Redirecting to reset password page');
+          navigate('/reset-password' + location.search, { replace: true });
+        }
+      }
+    };
+
+    handleAuthRedirect();
+  }, [navigate, location]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <UserProvider>
@@ -32,6 +63,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AuthHandler />
           <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
