@@ -58,14 +58,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('UserProvider: Quick session check:', !!session);
         
-        // Clear old localStorage values that might be causing issues
-        const oldUserId = localStorage.getItem('squidgy_user_id');
-        if (oldUserId && oldUserId.includes('40f59821-35fd-49d0-8bc9-9dbdfb2710eb')) {
-          console.log('🔧 Clearing old auth UUID from localStorage:', oldUserId);
-          localStorage.removeItem('squidgy_user_id');
-        }
-        
-        
         // Check if we're in development mode
         const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
                              !import.meta.env.VITE_SUPABASE_URL || 
