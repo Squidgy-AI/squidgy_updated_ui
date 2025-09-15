@@ -14,6 +14,7 @@ const SetNewPassword: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [authRetryCount, setAuthRetryCount] = useState(0);
 
   // Check if user is authenticated via password reset link
   useEffect(() => {
@@ -30,8 +31,29 @@ const SetNewPassword: React.FC = () => {
           // Check URL for password reset parameters
           const urlParams = new URLSearchParams(window.location.search);
           const isPasswordReset = urlParams.get('type') === 'recovery';
+          const hasAccessToken = urlParams.get('access_token');
+          const hasRefreshToken = urlParams.get('refresh_token');
           
-          if (!isPasswordReset) {
+          console.log('SetNewPassword: URL params check:', {
+            type: urlParams.get('type'),
+            hasAccessToken: !!hasAccessToken,
+            hasRefreshToken: !!hasRefreshToken,
+            allParams: Object.fromEntries(urlParams.entries())
+          });
+          
+          // If we have auth tokens or type=recovery, wait a bit for session to be established
+          if ((isPasswordReset || hasAccessToken || hasRefreshToken) && authRetryCount < 3) {
+            console.log(`SetNewPassword: Found auth parameters, waiting for session... (attempt ${authRetryCount + 1}/3)`);
+            // Give Supabase a moment to establish the session
+            setTimeout(() => {
+              setAuthRetryCount(prev => prev + 1);
+              checkAuthStatus();
+            }, 1000);
+          } else if (authRetryCount >= 3) {
+            console.log('SetNewPassword: Max retries reached, session not established');
+            toast.error('Unable to verify password reset link. Please request a new password reset.');
+            navigate('/forgot-password');
+          } else {
             toast.error('Invalid password reset link. Please request a new password reset.');
             navigate('/forgot-password');
           }
@@ -46,7 +68,21 @@ const SetNewPassword: React.FC = () => {
     };
 
     checkAuthStatus();
-  }, [navigate]);
+
+    // Also listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('SetNewPassword: Auth state change:', event, !!session);
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('SetNewPassword: User signed in via auth state change');
+        setIsAuthenticated(true);
+        setCheckingAuth(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, authRetryCount]);
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8;
