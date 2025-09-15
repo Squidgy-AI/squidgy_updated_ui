@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-ro
 import { UserProvider } from "@/hooks/useUser";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useEffect } from "react";
+import { supabase } from "./lib/supabase";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from './pages/Register';
@@ -37,20 +38,61 @@ const AuthHandler = () => {
       const code = urlParams.get('code');
       const error = urlParams.get('error');
       const type = urlParams.get('type');
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
 
-      // If there's an auth code, this might be a password reset callback
-      if (code && !error) {
-        console.log('Auth callback detected, type:', type);
+      console.log('AuthHandler: Checking URL params:', {
+        pathname: location.pathname,
+        code: !!code,
+        type,
+        accessToken: !!accessToken,
+        refreshToken: !!refreshToken,
+        error,
+        allParams: Object.fromEntries(urlParams.entries())
+      });
+
+      // Only redirect if we're on the root path with auth parameters
+      if (location.pathname === '/' && (code || accessToken) && !error) {
+        console.log('AuthHandler: Auth callback detected on root path');
         
-        // For password reset, redirect to reset password page
-        if (type === 'recovery' || location.pathname === '/') {
-          console.log('Redirecting to reset password page');
+        if (type === 'recovery') {
+          // Password reset flow
+          console.log('AuthHandler: Redirecting to reset password page');
           navigate('/reset-password' + location.search, { replace: true });
+        } else if (type === 'signup') {
+          // Signup confirmation flow
+          console.log('AuthHandler: Redirecting to login page for signup confirmation');
+          navigate('/login' + location.search, { replace: true });
+        } else if (code || accessToken) {
+          // Generic auth callback - could be either, check for password reset indicators
+          // If no specific type, default to login page
+          console.log('AuthHandler: Generic auth callback, redirecting to login');
+          navigate('/login' + location.search, { replace: true });
         }
+      }
+      
+      // Also check if we're on /login with password reset parameters
+      if (location.pathname === '/login' && code && !type) {
+        console.log('AuthHandler: Checking if this is a password reset on login page');
+        // This might be a password reset that landed on /login
+        // Let's check if the user gets authenticated and then redirect to reset-password
+        setTimeout(async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              console.log('AuthHandler: User authenticated via password reset link, redirecting to reset-password');
+              navigate('/reset-password' + location.search, { replace: true });
+            }
+          } catch (error) {
+            console.log('AuthHandler: Not a password reset link');
+          }
+        }, 500);
       }
     };
 
-    handleAuthRedirect();
+    // Small delay to ensure the component is mounted
+    const timer = setTimeout(handleAuthRedirect, 100);
+    return () => clearTimeout(timer);
   }, [navigate, location]);
 
   return null;
