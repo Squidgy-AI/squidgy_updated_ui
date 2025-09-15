@@ -1125,7 +1125,7 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
     const { data: result, error } = await supabase
       .from('website_analysis')
       .upsert(upsertData, {
-        onConflict: 'firm_user_id,agent_id,firm_id',  // Removed website_url from conflict
+        onConflict: 'firm_user_id,agent_id,website_url,firm_id',  // Match the actual unique constraint
         ignoreDuplicates: false
       })
       .select()
