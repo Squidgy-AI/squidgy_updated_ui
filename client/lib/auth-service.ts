@@ -78,8 +78,8 @@ export class AuthService {
 
       // Create auth user with email confirmation
       const redirectUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/confirm-signup`
-        : `${import.meta.env.VITE_FRONTEND_URL}/auth/confirm-signup`;
+        ? `${window.location.origin}/login`
+        : `${import.meta.env.VITE_FRONTEND_URL}/login`;
         
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email.toLowerCase(),
