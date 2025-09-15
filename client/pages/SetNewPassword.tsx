@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, X, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { resetPassword } from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 const SetNewPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -13,9 +14,41 @@ const SetNewPassword: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Get token from URL parameters
-  const token = searchParams.get('token') || '';
+  // Check if user is authenticated via password reset link
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('SetNewPassword: Checking auth session:', !!session);
+        
+        if (session?.user) {
+          setIsAuthenticated(true);
+          console.log('SetNewPassword: User authenticated via password reset link');
+        } else {
+          console.log('SetNewPassword: No authenticated session found');
+          // Check URL for password reset parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const isPasswordReset = urlParams.get('type') === 'recovery';
+          
+          if (!isPasswordReset) {
+            toast.error('Invalid password reset link. Please request a new password reset.');
+            navigate('/forgot-password');
+          }
+        }
+      } catch (error) {
+        console.error('SetNewPassword: Error checking auth:', error);
+        toast.error('Error verifying reset link. Please try again.');
+        navigate('/forgot-password');
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, [navigate]);
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8;
@@ -48,18 +81,27 @@ const SetNewPassword: React.FC = () => {
       return;
     }
 
-    if (!token) {
-      toast.error('Invalid reset token. Please request a new password reset.');
+    if (!isAuthenticated) {
+      toast.error('Not authenticated. Please use a valid password reset link.');
       return;
     }
 
     setLoading(true);
     
     try {
-      await resetPassword({ token, newPassword: password });
+      // Use Supabase's updateUser directly since user is already authenticated via magic link
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setIsSuccess(true);
       toast.success('Password reset successfully!');
     } catch (error: any) {
+      console.error('SetNewPassword: Error updating password:', error);
       toast.error(error.message || 'Failed to reset password');
     } finally {
       setLoading(false);
@@ -69,6 +111,18 @@ const SetNewPassword: React.FC = () => {
   const handleBackToLogin = () => {
     navigate('/login');
   };
+
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="fixed inset-0 w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
