@@ -77,9 +77,8 @@ export class AuthService {
       }
 
       // Create auth user with email confirmation
-      const redirectUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/login`
-        : `${import.meta.env.VITE_FRONTEND_URL}/login`;
+      // Always use production URL for email confirmations to avoid localhost issues
+      const redirectUrl = `${import.meta.env.VITE_FRONTEND_URL}/login`;
         
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email.toLowerCase(),
@@ -339,9 +338,8 @@ export class AuthService {
       }
 
       // Use Supabase Auth's built-in password reset
-      const redirectUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/reset-password`
-        : `${import.meta.env.VITE_FRONTEND_URL}/reset-password`;
+      // Always use production URL for password reset emails to avoid localhost issues
+      const redirectUrl = `${import.meta.env.VITE_FRONTEND_URL}/reset-password`;
         
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         data.email.toLowerCase(),
