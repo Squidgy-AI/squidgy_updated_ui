@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, LayoutDashboard } from "lucide-react";
 import { useUser } from "../hooks/useUser";
 import { useNavigate } from "react-router-dom";
 
@@ -43,6 +43,11 @@ export function UserAccountDropdown() {
   const handleAccountSettings = () => {
     setIsOpen(false);
     navigate('/account-settings');
+  };
+
+  const handleDashboard = () => {
+    setIsOpen(false);
+    navigate('/dashboard');
   };
 
   const handleLogout = async () => {
@@ -109,6 +114,14 @@ export function UserAccountDropdown() {
 
           {/* Menu Items */}
           <div className="py-2">
+            <button
+              onClick={handleDashboard}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text-primary hover:bg-gray-50 transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4 text-gray-500" />
+              Go to Dashboard
+            </button>
+            
             <button
               onClick={handleAccountSettings}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text-primary hover:bg-gray-50 transition-colors"
