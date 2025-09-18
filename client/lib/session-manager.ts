@@ -7,6 +7,15 @@ class SessionManager {
   
   // Start monitoring session
   startSessionMonitoring() {
+    // Don't start monitoring on auth pages
+    const currentPath = window.location.pathname;
+    const authPages = ['/login', '/register', '/forgot-password', '/reset-password'];
+    
+    if (authPages.includes(currentPath)) {
+      console.log('On auth page, skipping session monitoring');
+      return;
+    }
+    
     // Clear any existing interval
     this.stopSessionMonitoring();
     
@@ -68,6 +77,15 @@ class SessionManager {
   // Handle session expiry
   private async handleSessionExpiry() {
     try {
+      // Don't redirect if already on login page or auth-related pages
+      const currentPath = window.location.pathname;
+      const authPages = ['/login', '/register', '/forgot-password', '/reset-password'];
+      
+      if (authPages.includes(currentPath)) {
+        console.log('Already on auth page, skipping redirect');
+        return;
+      }
+      
       // Sign out the user
       await supabase.auth.signOut();
       
@@ -84,8 +102,13 @@ class SessionManager {
       }, 2000);
     } catch (error) {
       console.error('Error handling session expiry:', error);
-      // Force redirect even if sign out fails
-      window.location.href = '/login';
+      // Only force redirect if not already on auth page
+      const currentPath = window.location.pathname;
+      const authPages = ['/login', '/register', '/forgot-password', '/reset-password'];
+      
+      if (!authPages.includes(currentPath)) {
+        window.location.href = '/login';
+      }
     }
   }
   

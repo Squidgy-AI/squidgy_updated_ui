@@ -29,7 +29,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
                        import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co';
 
   // Only redirect to login AFTER we're sure auth check is complete (isReady = true)
-  if (!isAuthenticated && !isDevelopment) {
+  if (!isAuthenticated) {
     console.log('ProtectedRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
