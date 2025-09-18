@@ -5,6 +5,22 @@ interface AssistantDetailsProps {
 
 export default function AssistantDetails({ assistant, onClose }: AssistantDetailsProps) {
   const assistantInfo = {
+    "Personal Assistant": {
+      name: "Personal Assistant",
+      tagline: "Always Ready to Help",
+      description: "Your versatile personal assistant ready to help with any task, from scheduling and organization to research and general support.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/67bd34c904bea0de4f9e4c9c66814ba3425c5a06?width=128",
+      capabilities: [
+        "Task management and scheduling coordination",
+        "Research and information gathering",
+        "Email drafting and communication support",
+        "Document organization and file management"
+      ],
+      recentActions: [
+        "Organized calendar for next week's meetings",
+        "Researched market trends for quarterly report"
+      ]
+    },
     "SMM Assistant": {
       name: "SMM Assistant",
       tagline: "Creative & Trendy",
@@ -19,6 +35,86 @@ export default function AssistantDetails({ assistant, onClose }: AssistantDetail
       recentActions: [
         "Created 15 Instagram post ideas for fashion brand",
         "Analysed competitor performance"
+      ]
+    },
+    "Content Strategist": {
+      name: "Content Strategist",
+      tagline: "Strategic & Creative",
+      description: "Expert in content planning, creation, and repurposing strategies to maximize your content's reach and impact across multiple channels.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/fae0953bfe5842c25b1a321c667188d167c18abb?width=128",
+      capabilities: [
+        "Content calendar planning and strategy development",
+        "Multi-platform content adaptation and repurposing",
+        "SEO optimization and keyword research",
+        "Content performance analysis and optimization"
+      ],
+      recentActions: [
+        "Developed 3-month content calendar for tech startup",
+        "Repurposed blog posts into 20 social media pieces"
+      ]
+    },
+    "Lead Generator": {
+      name: "Lead Generator",
+      tagline: "Results-Driven & Efficient",
+      description: "Focused on identifying, qualifying, and nurturing potential leads to boost your sales pipeline and drive business growth.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/1c1a9e476685a48c996662d5e993f34fffc24ec0?width=128",
+      capabilities: [
+        "Lead identification and prospecting across multiple channels",
+        "Lead qualification and scoring systems",
+        "Cold outreach campaign development and execution",
+        "Sales funnel optimization and conversion tracking"
+      ],
+      recentActions: [
+        "Generated 150 qualified leads for B2B software company",
+        "Optimized email sequences increasing conversion by 25%"
+      ]
+    },
+    "CRM Updater": {
+      name: "CRM Updater",
+      tagline: "Organized & Reliable",
+      description: "Dedicated to maintaining clean, accurate, and up-to-date customer data to ensure your CRM system runs smoothly and efficiently.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/aba5f5c2e7b9e818f550225ff47becc0bcd708e2?width=128",
+      capabilities: [
+        "Data cleansing and duplicate removal",
+        "Contact information verification and updates",
+        "CRM workflow automation and optimization",
+        "Data migration and system integration"
+      ],
+      recentActions: [
+        "Cleaned and updated 5,000 customer records",
+        "Automated lead scoring workflow in Salesforce"
+      ]
+    },
+    "Recruiter Assistant": {
+      name: "Recruiter Assistant",
+      tagline: "People-Focused & Strategic",
+      description: "Streamlines your hiring process by sourcing top talent, screening candidates, and managing recruitment workflows efficiently.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/ffe6304047504c08d7faccb66297228d39227080?width=128",
+      capabilities: [
+        "Candidate sourcing and talent pipeline development",
+        "Resume screening and initial candidate assessment",
+        "Interview scheduling and coordination",
+        "Recruitment analytics and hiring process optimization"
+      ],
+      recentActions: [
+        "Sourced 50 qualified candidates for senior developer role",
+        "Streamlined interview process reducing time-to-hire by 30%"
+      ]
+    },
+    "Onboarding Coach": {
+      name: "Onboarding Coach",
+      tagline: "Welcoming & Systematic",
+      description: "Creates smooth onboarding experiences for new team members, ensuring they feel welcomed and quickly become productive contributors.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/46c75834fbbcdebb1b62ffbf7635f3f0a5191324?width=128",
+      capabilities: [
+        "Onboarding program design and implementation",
+        "New hire documentation and checklist creation",
+        "Training schedule coordination and progress tracking",
+        "Employee feedback collection and process improvement"
+      ],
+      recentActions: [
+        "Designed comprehensive onboarding program for remote team",
+        "Reduced new hire time-to-productivity by 40%"
       ]
     }
   }[assistant];

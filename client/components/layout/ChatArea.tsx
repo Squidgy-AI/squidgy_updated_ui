@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ChatAreaProps {
   selectedAssistant: string;
@@ -17,15 +17,69 @@ export default function ChatArea({ selectedAssistant, onToggleDetails, onToggleS
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const assistantData = {
+    "Personal Assistant": {
+      name: "Personal Assistant",
+      description: "active • Always here to help.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/67bd34c904bea0de4f9e4c9c66814ba3425c5a06?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your Personal Assistant. I'm here to help you with any tasks or questions you might have. How can I assist you today?"
+    },
     "SMM Assistant": {
       name: "SMM Assistant",
       description: "active • Trend. Post. Analyze.",
-      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/1ceab8b3be0f8cfb68dbf82ce6e6b00a950e6a24?width=80",
-      isOnline: true
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/5de94726d88f958a1bdd5755183ee631960b155f?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your SMM Assistant. I'm here to help you create engaging social media content, analyze trends, and grow your online presence. What can I help you with today?"
+    },
+    "Content Strategist": {
+      name: "Content Strategist",
+      description: "active • Plan. Write. Repurpose.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/fae0953bfe5842c25b1a321c667188d167c18abb?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your Content Strategist. I specialize in planning, writing, and repurposing content to maximize your reach and engagement. What content project can I help you with?"
+    },
+    "Lead Generator": {
+      name: "Lead Generator",
+      description: "active • Find leads fast.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/1c1a9e476685a48c996662d5e993f34fffc24ec0?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your Lead Generator. I'm here to help you find and qualify potential leads quickly and efficiently. Ready to boost your sales pipeline?"
+    },
+    "CRM Updater": {
+      name: "CRM Updater",
+      description: "active • Keep data clean.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/aba5f5c2e7b9e818f550225ff47becc0bcd708e2?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your CRM Updater. I help keep your customer data clean, organized, and up-to-date. What CRM tasks can I assist you with today?"
+    },
+    "Recruiter Assistant": {
+      name: "Recruiter Assistant",
+      description: "active • Hire with ease.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/ffe6304047504c08d7faccb66297228d39227080?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your Recruiter Assistant. I'm here to help streamline your hiring process and find the best candidates. What recruiting challenge can I help you solve?"
+    },
+    "Onboarding Coach": {
+      name: "Onboarding Coach",
+      description: "active • Smooth onboarding all the way.",
+      avatar: "https://api.builder.io/api/v1/image/assets/TEMP/46c75834fbbcdebb1b62ffbf7635f3f0a5191324?width=64",
+      isOnline: true,
+      greeting: "Hi! I'm your Onboarding Coach. I specialize in creating smooth onboarding experiences for new team members. How can I help improve your onboarding process?"
     }
-  }[selectedAssistant];
+  }[selectedAssistant] || {
+    name: selectedAssistant,
+    description: "active • Ready to help.",
+    avatar: "https://api.builder.io/api/v1/image/assets/TEMP/5de94726d88f958a1bdd5755183ee631960b155f?width=64",
+    isOnline: true,
+    greeting: `Hi! I'm your ${selectedAssistant}. How can I help you today?`
+  };
 
   const currentTime = "2:30 PM";
+
+  // Clear messages when switching assistants
+  useEffect(() => {
+    setMessages([]);
+  }, [selectedAssistant]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -44,7 +98,7 @@ export default function ChatArea({ selectedAssistant, onToggleDetails, onToggleS
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `Hi! I'm your ${selectedAssistant}. I'm here to help you create engaging social media content, analyze trends, and grow your online presence. What can I help you with today?`,
+        content: assistantData?.greeting || `Hi! I'm your ${selectedAssistant}. How can I help you today?`,
         sender: 'assistant',
         timestamp: new Date()
       };
@@ -124,14 +178,14 @@ export default function ChatArea({ selectedAssistant, onToggleDetails, onToggleS
         {messages.length === 0 ? (
           <div className="flex items-start gap-3 max-w-4xl">
             <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/5de94726d88f958a1bdd5755183ee631960b155f?width=64"
-              alt="SMM Assistant"
+              src={assistantData?.avatar}
+              alt={assistantData?.name}
               className="w-8 h-8 rounded-full flex-shrink-0"
             />
             <div className="flex flex-col gap-1 min-w-0 max-w-2xl">
               <div className="bg-bg-message rounded-lg p-3">
                 <p className="text-sm text-black leading-5">
-                  Hi! I'm your SMM Assistant. I'm here to help you create engaging social media content, analyze trends, and grow your online presence. What can I help you with today?
+                  {assistantData?.greeting}
                 </p>
               </div>
               <span className="text-xs text-text-secondary text-right">{currentTime}</span>
@@ -143,8 +197,8 @@ export default function ChatArea({ selectedAssistant, onToggleDetails, onToggleS
               <div key={message.id} className={`flex items-start gap-3 max-w-4xl ${message.sender === 'user' ? 'flex-row-reverse' : ''}`}>
                 {message.sender === 'assistant' && (
                   <img 
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/5de94726d88f958a1bdd5755183ee631960b155f?width=64"
-                    alt="SMM Assistant"
+                    src={assistantData?.avatar}
+                    alt={assistantData?.name}
                     className="w-8 h-8 rounded-full flex-shrink-0"
                   />
                 )}
