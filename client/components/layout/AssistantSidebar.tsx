@@ -133,15 +133,15 @@ export default function AssistantSidebar({ selectedAssistant, onSelectAssistant 
           <h2 className="text-sm font-semibold text-black leading-5">Your Assistants</h2>
         </div>
         <div className="flex items-start gap-2">
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-squidgy-gradient text-white text-sm">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <button className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-squidgy-gradient text-white text-xs whitespace-nowrap">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12.1839 13.7715V12.4889C12.1839 11.8086 11.9137 11.1562 11.4326 10.6751C10.9516 10.1941 10.2991 9.92383 9.6188 9.92383H5.77115C5.09085 9.92383 4.4384 10.1941 3.95735 10.6751C3.47631 11.1562 3.20605 11.8086 3.20605 12.4889V13.7715" stroke="white" strokeWidth="1.2825" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M7.69547 7.35872C9.11214 7.35872 10.2606 6.21028 10.2606 4.79362C10.2606 3.37695 9.11214 2.22852 7.69547 2.22852C6.27881 2.22852 5.13037 3.37695 5.13037 4.79362C5.13037 6.21028 6.27881 7.35872 7.69547 7.35872Z" stroke="white" strokeWidth="1.2825" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>Group Chat</span>
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-squidgy-primary/10 text-squidgy-primary text-sm">
-            <span className="text-lg">+</span>
+          <button className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-squidgy-primary/10 text-squidgy-primary text-xs whitespace-nowrap">
+            <span className="text-sm">+</span>
             <span>Add New</span>
           </button>
         </div>

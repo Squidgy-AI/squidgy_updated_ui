@@ -7,6 +7,7 @@ import AssistantDetails from "./AssistantDetails";
 export default function MainLayout() {
   const [selectedAssistant, setSelectedAssistant] = useState("SMM Assistant");
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <div className="h-screen flex bg-white">
@@ -16,18 +17,21 @@ export default function MainLayout() {
       </div>
 
       {/* Assistant Sidebar - Fixed width */}
-      <div className="hidden lg:block">
-        <AssistantSidebar
-          selectedAssistant={selectedAssistant}
-          onSelectAssistant={setSelectedAssistant}
-        />
-      </div>
+      {isSidebarOpen && (
+        <div className="hidden lg:block transition-all duration-300 ease-in-out">
+          <AssistantSidebar
+            selectedAssistant={selectedAssistant}
+            onSelectAssistant={setSelectedAssistant}
+          />
+        </div>
+      )}
 
       {/* Main Chat Area - Flexible width */}
       <div className="flex-1 flex flex-col">
         <ChatArea
           selectedAssistant={selectedAssistant}
           onToggleDetails={() => setIsDetailsPanelOpen(!isDetailsPanelOpen)}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
       </div>
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 interface ChatAreaProps {
   selectedAssistant: string;
   onToggleDetails: () => void;
+  onToggleSidebar: () => void;
 }
 
 interface Message {
@@ -12,7 +13,7 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatArea({ selectedAssistant, onToggleDetails }: ChatAreaProps) {
+export default function ChatArea({ selectedAssistant, onToggleDetails, onToggleSidebar }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const assistantData = {
@@ -63,7 +64,7 @@ export default function ChatArea({ selectedAssistant, onToggleDetails }: ChatAre
       {/* Header */}
       <div className="flex items-center gap-4 px-4 py-4 border-b border-border-light">
         {/* Sidebar toggle */}
-        <button className="text-squidgy-primary">
+        <button onClick={onToggleSidebar} className="text-squidgy-primary hover:bg-gray-100 p-1 rounded transition-colors" title="Toggle Sidebar">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7.5 2.5V17.5M4.16667 2.5H15.8333C16.7538 2.5 17.5 3.24619 17.5 4.16667V15.8333C17.5 16.7538 16.7538 17.5 15.8333 17.5H4.16667C3.24619 17.5 2.5 16.7538 2.5 15.8333V4.16667C2.5 3.24619 3.24619 2.5 4.16667 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -161,22 +162,6 @@ export default function ChatArea({ selectedAssistant, onToggleDetails }: ChatAre
             ))}
           </div>
         )}
-        
-        {/* Chat Assistant floating profile */}
-        <div className="fixed right-4 top-32">
-          <div className="flex flex-col items-center">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/9da56064c4c6d81002fa2f533c4276b6fa8b276e?width=112"
-              alt="Chat Assistant"
-              className="w-14 h-14 rounded-full border-2 border-white"
-            />
-            <div className="relative -mt-1 -mr-1">
-              <div className="w-8 h-8 bg-white rounded-full shadow-sm flex items-center justify-center">
-                <div className="w-6 h-6 bg-indigo-100 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
       
       {/* Input Area */}

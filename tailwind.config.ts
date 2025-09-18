@@ -104,7 +104,7 @@ export default {
       },
       backgroundImage: {
         'squidgy-gradient': 'linear-gradient(107deg, #FB252A 3.11%, #A61D92 50.44%, #6017E8 100.58%)',
-        'header-gradient': 'linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%)',
+        'header-gradient': 'linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%)',
       },
       fontFamily: {
         'open-sans': ['Open Sans', 'Inter', '-apple-system', 'Roboto', 'Helvetica', 'sans-serif'],
