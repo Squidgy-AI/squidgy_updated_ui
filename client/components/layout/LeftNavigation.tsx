@@ -1,16 +1,42 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { authService } from "../../lib/auth-service";
 
-export default function LeftNavigation() {
+interface LeftNavigationProps {
+  currentPage?: 'chat' | 'dashboard' | 'home';
+}
+
+export default function LeftNavigation({ currentPage }: LeftNavigationProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-detect current page if not provided
+  const detectCurrentPage = () => {
+    if (currentPage) return currentPage;
+    const path = location.pathname;
+    if (path.includes('/chat')) return 'chat';
+    if (path.includes('/dashboard')) return 'dashboard';
+    if (path.includes('/welcome')) return 'home';
+    return 'home';
+  };
+
+  const activePage = detectCurrentPage();
+
+  const handleChatClick = () => {
+    navigate('/chat');
+  };
 
   const handleHomeClick = () => {
     navigate('/welcome');
   };
 
+  const handleDashboardClick = () => {
+    navigate('/dashboard');
+  };
+
   const handleLogout = async () => {
     try {
       console.log('Starting logout process...');
-      // await authService.signOut();
+      await authService.signOut();
       console.log('Logout successful, redirecting to login...');
       navigate('/login');
     } catch (error) {
@@ -19,17 +45,23 @@ export default function LeftNavigation() {
       navigate('/login');
     }
   };
+
   return (
-    <div className="w-[57px] h-full flex flex-col border-r border-border-purple bg-white">
-      {/* Top section with navigation items */}
-      <div className="flex-1 flex flex-col pt-7 pr-1 gap-1">
-        {/* Chat icon - active */}
-        <div className="flex flex-col items-center px-2.5 py-2">
-          <div className="flex justify-center items-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 22V4C2 3.45 2.19583 2.97917 2.5875 2.5875C2.97917 2.19583 3.45 2 4 2H20C20.55 2 21.0208 2.19583 21.4125 2.5875C21.8042 2.97917 22 3.45 22 4V16C22 16.55 21.8042 17.0208 21.4125 17.4125C21.0208 17.8042 20.55 18 20 18H6L2 22Z" fill="url(#paint0_linear_chat)"/>
+    <div className="w-[60px] bg-white border-r border-purple-200 flex flex-col items-center py-7 h-screen fixed left-0 top-0 z-10">
+      {/* Top navigation items */}
+      <div className="flex flex-col items-center gap-4">
+        {/* Chat Icon */}
+        <button 
+          onClick={handleChatClick}
+          className={`flex flex-col items-center p-2 w-full hover:bg-gray-100 rounded-lg transition-colors ${
+            activePage === 'chat' ? 'bg-gray-50' : ''
+          }`}
+        >
+          <div className="flex justify-center items-center mb-1">
+            <svg width="24" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.5 22V4C2.5 3.45 2.69583 2.97917 3.0875 2.5875C3.47917 2.19583 3.95 2 4.5 2H20.5C21.05 2 21.5208 2.19583 21.9125 2.5875C22.3042 2.97917 22.5 3.45 22.5 4V16C22.5 16.55 22.3042 17.0208 21.9125 17.4125C21.5208 17.8042 21.05 18 20.5 18H6.5L2.5 22Z" fill="url(#chatGradient)"/>
               <defs>
-                <linearGradient id="paint0_linear_chat" x1="2" y1="2" x2="21.1521" y2="22.7814" gradientUnits="userSpaceOnUse">
+                <linearGradient id="chatGradient" x1="2.5" y1="2" x2="21.6521" y2="22.7814" gradientUnits="userSpaceOnUse">
                   <stop stopColor="#FB252A"/>
                   <stop offset="0.5" stopColor="#A61D92"/>
                   <stop offset="1" stopColor="#6017E8"/>
@@ -37,73 +69,95 @@ export default function LeftNavigation() {
               </defs>
             </svg>
           </div>
-          <span className="text-squidgy-primary text-[9px] font-normal leading-4 text-center">Chats</span>
-        </div>
-        
-        {/* Home icon */}
-        <button onClick={handleHomeClick} className="flex flex-col items-center px-1 py-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g clipPath="url(#clip0_home)">
-              <path d="M11.2499 21.3746V15.7496H15.7499V21.3746C15.7499 21.9933 16.2562 22.4996 16.8749 22.4996H20.2499C20.8687 22.4996 21.3749 21.9933 21.3749 21.3746V13.4996H23.2874C23.8049 13.4996 24.0524 12.8583 23.6587 12.5208L14.2537 4.04957C13.8262 3.66707 13.1737 3.66707 12.7462 4.04957L3.34118 12.5208C2.95868 12.8583 3.19493 13.4996 3.71243 13.4996H5.62493V21.3746C5.62493 21.9933 6.13118 22.4996 6.74993 22.4996H10.1249C10.7437 22.4996 11.2499 21.9933 11.2499 21.3746Z" fill="url(#paint0_linear_home)"/>
-            </g>
-            <defs>
-              <linearGradient id="paint0_linear_home" x1="3.15234" y1="3.7627" x2="20.8629" y2="24.9935" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#FB252A"/>
-                <stop offset="0.5" stopColor="#A61D92"/>
-                <stop offset="1" stopColor="#6017E8"/>
-              </linearGradient>
-              <clipPath id="clip0_home">
-                <rect width="27" height="27" fill="white"/>
-              </clipPath>
-            </defs>
-          </svg>
-          <span className="text-squidgy-primary text-[9px] font-normal leading-4 text-center w-[46px]">Home</span>
+          <span className="text-squidgy-text text-[9px] font-normal leading-4 text-center">
+            Chats
+          </span>
         </button>
         
-        {/* Menu icon */}
-        <div className="flex flex-col items-center px-1 py-2">
-          <svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3.5 12H21.5M3.5 6H21.5M3.5 18H21.5" stroke="url(#paint0_linear_menu)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs>
-              <linearGradient id="paint0_linear_menu" x1="3.5" y1="6" x2="13.7851" y2="22.74" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#FB252A"/>
-                <stop offset="0.5" stopColor="#A61D92"/>
-                <stop offset="1" stopColor="#6017E8"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-squidgy-primary text-[9px] font-normal leading-4 text-center w-[46px]">Menu</span>
-        </div>
+        {/* Home Icon */}
+        <button 
+          onClick={handleHomeClick}
+          className={`flex flex-col items-center p-2 w-full hover:bg-gray-100 rounded-lg transition-colors ${
+            activePage === 'home' ? 'bg-gray-50' : ''
+          }`}
+        >
+          <div className="flex justify-center items-center mb-1">
+            <svg width="27" height="27" viewBox="0 0 28 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clipPath="url(#homeClip)">
+                <path d="M11.7499 21.3746V15.7496H16.2499V21.3746C16.2499 21.9933 16.7562 22.4996 17.3749 22.4996H20.7499C21.3687 22.4996 21.8749 21.9933 21.8749 21.3746V13.4996H23.7874C24.3049 13.4996 24.5524 12.8583 24.1587 12.5208L14.7537 4.04957C14.3262 3.66707 13.6737 3.66707 13.2462 4.04957L3.84118 12.5208C3.45868 12.8583 3.69493 13.4996 4.21243 13.4996H6.12493V21.3746C6.12493 21.9933 6.63118 22.4996 7.24993 22.4996H10.6249C11.2437 22.4996 11.7499 21.9933 11.7499 21.3746Z" fill="url(#homeGradient)"/>
+              </g>
+              <defs>
+                <linearGradient id="homeGradient" x1="3.65234" y1="3.7627" x2="21.3629" y2="24.9935" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#FB252A"/>
+                  <stop offset="0.5" stopColor="#A61D92"/>
+                  <stop offset="1" stopColor="#6017E8"/>
+                </linearGradient>
+                <clipPath id="homeClip">
+                  <rect width="27" height="27" fill="white" transform="translate(0.5)"/>
+                </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <span className="text-squidgy-text text-[9px] font-normal leading-4 text-center w-[46px]">
+            Home
+          </span>
+        </button>
         
-        {/* Spacer */}
-        <div className="flex-1" />
+        {/* Menu Icon */}
+        <div className="flex flex-col items-center p-2 w-full">
+          <div className="flex justify-center items-center mb-1">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 12H21M3 6H21M3 18H21" stroke="url(#menuGradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="menuGradient" x1="3" y1="6" x2="13.2851" y2="22.74" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#FB252A"/>
+                  <stop offset="0.5" stopColor="#A61D92"/>
+                  <stop offset="1" stopColor="#6017E8"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span className="text-squidgy-text text-[9px] font-normal leading-4 text-center w-[46px]">
+            Menu
+          </span>
+        </div>
       </div>
       
-      {/* Bottom section */}
-      <div className="flex flex-col">
-        {/* Log out */}
-        <button onClick={handleLogout} className="flex flex-col items-center px-1 py-4 justify-end hover:bg-gray-100 rounded-lg transition-colors">
-          <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9.375 21.875H5.20833C4.6558 21.875 4.12589 21.6555 3.73519 21.2648C3.34449 20.8741 3.125 20.3442 3.125 19.7917V5.20833C3.125 4.6558 3.34449 4.12589 3.73519 3.73519C4.12589 3.34449 4.6558 3.125 5.20833 3.125H9.375M16.6667 17.7083L21.875 12.5M21.875 12.5L16.6667 7.29167M21.875 12.5H9.375" stroke="url(#paint0_linear_logout)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs>
-              <linearGradient id="paint0_linear_logout" x1="3.125" y1="3.125" x2="21.0801" y2="22.6076" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#FB252A"/>
-                <stop offset="0.5" stopColor="#A61D92"/>
-                <stop offset="1" stopColor="#6017E8"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-squidgy-primary text-[9px] font-normal leading-4 text-center w-[46px]">Log Out</span>
+      {/* Spacer to push bottom items to the very bottom */}
+      <div className="flex-1"></div>
+      
+      {/* Bottom section - positioned at the very bottom */}
+      <div className="flex flex-col items-center gap-4">
+        {/* Log Out */}
+        <button 
+          onClick={handleLogout}
+          className="flex flex-col items-center p-2 w-full hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <div className="flex justify-center items-center mb-1">
+            <svg width="25" height="25" viewBox="0 0 26 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9.875 21.875H5.70833C5.1558 21.875 4.62589 21.6555 4.23519 21.2648C3.84449 20.8741 3.625 20.3442 3.625 19.7917V5.20833C3.625 4.6558 3.84449 4.12589 4.23519 3.73519C4.62589 3.34449 5.1558 3.125 5.70833 3.125H9.875M17.1667 17.7083L22.375 12.5M22.375 12.5L17.1667 7.29167M22.375 12.5H9.875" stroke="url(#logoutGradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="logoutGradient" x1="3.625" y1="3.125" x2="21.5801" y2="22.6076" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#FB252A"/>
+                  <stop offset="0.5" stopColor="#A61D92"/>
+                  <stop offset="1" stopColor="#6017E8"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span className="text-squidgy-text text-[9px] font-normal leading-4 text-center w-[46px]">
+            Log Out
+          </span>
         </button>
-        
-        {/* Profile */}
-        <div className="flex flex-col items-center px-1 py-4 justify-end">
-          <img 
-            src="https://api.builder.io/api/v1/image/assets/TEMP/50df51a52344836e4abaf581e6adf4669f2e4fe5?width=64" 
-            alt="Profile" 
-            className="w-8 h-8 rounded-full"
-          />
-          <span className="text-text-secondary text-[9px] font-normal leading-4 text-center w-[46px]">WasteLess</span>
+
+        {/* Profile Section */}
+        <div className="flex flex-col items-center p-2 w-full">
+          <div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center overflow-hidden">
+            <img src="https://api.builder.io/api/v1/image/assets/TEMP/84d0b086716590166781f74d276307d7cb0735bb?width=64" alt="Assistant" className="w-full h-full rounded-full object-cover" />
+          </div>
+          <span className="text-gray-500 text-[8.5px] font-normal leading-4 text-center w-[46px]">
+            WasteLess
+          </span>
         </div>
       </div>
     </div>

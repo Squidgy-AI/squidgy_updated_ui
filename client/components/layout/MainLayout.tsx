@@ -10,40 +10,43 @@ export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="h-screen flex bg-white">
-      {/* Left Navigation - Fixed width */}
+    <div className="h-screen bg-white">
+      {/* Left Navigation - Fixed positioned */}
       <div className="hidden sm:block">
-        <LeftNavigation />
+        <LeftNavigation currentPage="chat" />
       </div>
 
-      {/* Assistant Sidebar - Fixed width */}
-      {isSidebarOpen && (
-        <div className="hidden lg:block transition-all duration-300 ease-in-out">
-          <AssistantSidebar
+      {/* Main content area with left margin to account for fixed nav */}
+      <div className="ml-[60px] h-screen flex">
+        {/* Assistant Sidebar - Fixed width */}
+        {isSidebarOpen && (
+          <div className="hidden lg:block transition-all duration-300 ease-in-out">
+            <AssistantSidebar
+              selectedAssistant={selectedAssistant}
+              onSelectAssistant={setSelectedAssistant}
+            />
+          </div>
+        )}
+
+        {/* Main Chat Area - Flexible width */}
+        <div className="flex-1 flex flex-col">
+          <ChatArea
             selectedAssistant={selectedAssistant}
-            onSelectAssistant={setSelectedAssistant}
+            onToggleDetails={() => setIsDetailsPanelOpen(!isDetailsPanelOpen)}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         </div>
-      )}
 
-      {/* Main Chat Area - Flexible width */}
-      <div className="flex-1 flex flex-col">
-        <ChatArea
-          selectedAssistant={selectedAssistant}
-          onToggleDetails={() => setIsDetailsPanelOpen(!isDetailsPanelOpen)}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        />
+        {/* Assistant Details Panel - Fixed width, collapsible */}
+        {isDetailsPanelOpen && (
+          <div className="hidden xl:block">
+            <AssistantDetails
+              assistant={selectedAssistant}
+              onClose={() => setIsDetailsPanelOpen(false)}
+            />
+          </div>
+        )}
       </div>
-
-      {/* Assistant Details Panel - Fixed width, collapsible */}
-      {isDetailsPanelOpen && (
-        <div className="hidden xl:block">
-          <AssistantDetails
-            assistant={selectedAssistant}
-            onClose={() => setIsDetailsPanelOpen(false)}
-          />
-        </div>
-      )}
     </div>
   );
 }
