@@ -26,6 +26,8 @@ dist-ssr
 .config/
 .env
 
-vortex-space/
 .env_production
 .env_backup_farzin
+nova-realm.rar
+nova-realm/
+nova-realm_updated/

@@ -25,6 +25,7 @@ import SetupComplete from "./pages/SetupComplete";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
 import NotFound from "./pages/NotFound";
+import ChatPage from "./pages/ChatPage";
 
 const queryClient = new QueryClient();
 
@@ -161,6 +162,11 @@ const App = () => (
           <Route path="/account-settings" element={
             <ProtectedRoute>
               <AccountSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat" element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

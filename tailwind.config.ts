@@ -14,7 +14,11 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          light: "#E5E5E7",
+          purple: "#E5E5E7",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -63,11 +67,18 @@ export default {
           pink: "#A61D92",
           red: "#FB252A",
           blue: "#6017E8",
+          primary: "#5E17EB",
         },
         text: {
           primary: "#232534",
           secondary: "#444652",
           subtle: "#656671",
+          success: "#028833",
+        },
+        bg: {
+          message: "#F5F5F5",
+          selected: "#F3ECFF",
+          hover: "#F9F9F9",
         },
         grey: {
           200: "#444652",
@@ -79,9 +90,6 @@ export default {
         green: {
           100: "#E5F6EC",
           600: "#028833",
-        },
-        secondary: {
-          main: "#DA078C",
         },
         "grey-500T": "rgba(35, 37, 52, 0.40)",
         "grey-700T": "rgba(35, 37, 52, 0.20)",
@@ -96,6 +104,7 @@ export default {
       },
       backgroundImage: {
         'squidgy-gradient': 'linear-gradient(107deg, #FB252A 3.11%, #A61D92 50.44%, #6017E8 100.58%)',
+        'header-gradient': 'linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%)',
       },
       fontFamily: {
         'open-sans': ['Open Sans', 'Inter', '-apple-system', 'Roboto', 'Helvetica', 'sans-serif'],
