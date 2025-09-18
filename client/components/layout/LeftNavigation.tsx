@@ -1,5 +1,5 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useUser } from '../../hooks/useUser';
+import { useNavigate, useLocation } from "react-router-dom";
+import { authService } from "../../lib/auth-service";
 
 interface LeftNavigationProps {
   currentPage?: 'chat' | 'dashboard' | 'home';
@@ -8,7 +8,6 @@ interface LeftNavigationProps {
 export default function LeftNavigation({ currentPage }: LeftNavigationProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { clearUser } = useUser();
 
   // Auto-detect current page if not provided
   const detectCurrentPage = () => {
@@ -36,12 +35,12 @@ export default function LeftNavigation({ currentPage }: LeftNavigationProps) {
 
   const handleLogout = async () => {
     try {
-      console.log('LeftNavigation: Starting logout process...');
-      await clearUser();
-      console.log('LeftNavigation: Logout successful, redirecting to login...');
+      console.log('Starting logout process...');
+      await authService.signOut();
+      console.log('Logout successful, redirecting to login...');
       navigate('/login');
     } catch (error) {
-      console.error('LeftNavigation: Logout failed:', error);
+      console.error('Logout failed:', error);
       // Still redirect to login even if logout fails
       navigate('/login');
     }

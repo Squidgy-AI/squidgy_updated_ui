@@ -70,19 +70,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         });
         
         if (isDevelopment) {
-          // Development mode - but check if user explicitly logged out
-          const hasExplicitLogout = !localStorage.getItem('dev_user_id') && 
-                                   !localStorage.getItem('dev_user_email');
-          
-          if (hasExplicitLogout) {
-            console.log('UserProvider: User explicitly logged out, not auto-authenticating');
-            setIsAuthenticated(false);
-            setUser(null);
-            setProfile(null);
-            setIsReady(true);
-            return;
-          }
-          
           // Development mode - create or use existing dev user
           let devUserId = localStorage.getItem('dev_user_id');
           let devUserEmail = localStorage.getItem('dev_user_email') || 'dmacproject123@gmail.com';
@@ -529,7 +516,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
 
   const clearUser = async () => {
     try {
-      console.log('clearUser: Starting logout process...');
       await authService.signOut();
     } catch (error) {
       console.error('Error signing out:', error);
@@ -538,41 +524,18 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     // Stop session monitoring
     sessionManager.stopSessionMonitoring();
     
-    // Clear ALL authentication state
     setUserIdState('');
     setSessionIdState('');
     setAgentIdState('');
     setIsAuthenticated(false);
     setUser(null);
     setProfile(null);
-    setIsReady(false); // Set to false to force re-initialization
-    
-    // Clear ALL localStorage items related to authentication
     localStorage.removeItem('squidgy_user_id');
     localStorage.removeItem('squidgy_session_id');
     localStorage.removeItem('dev_user_id');
     localStorage.removeItem('dev_user_email');
-    localStorage.removeItem('dev_user_name');
-    localStorage.removeItem('dev_user_avatar');
     localStorage.removeItem('session_expiry_warning');
-    
-    // Clear Supabase session storage
-    localStorage.removeItem('supabase.auth.token');
-    localStorage.removeItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
-    
-    // Clear any other auth-related storage
-    Object.keys(localStorage).forEach(key => {
-      if (key.includes('supabase') || key.includes('auth') || key.includes('squidgy')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    console.log('clearUser: All authentication state cleared');
-    
-    // Force a page reload to ensure clean state
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    setIsReady(true); // Keep ready state true to prevent re-initialization
   };
 
   // Add refresh function to reload profile from database
