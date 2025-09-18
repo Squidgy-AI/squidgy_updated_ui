@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { X, Menu, Calendar, HelpCircle, Clock, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ChatInterface } from "../components/ChatInterface";
-import { UserAccountDropdown } from "../components/UserAccountDropdown";
-import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
+import { ChatInterface } from '../components/ChatInterface';
+import { UserAccountDropdown } from '../components/UserAccountDropdown';
+import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
+import LeftNavigation from '../components/layout/LeftNavigation';
 import { useUser } from "../hooks/useUser";
 import { saveCalendarSetup, getCalendarSetup } from "../lib/api";
 import { toast } from "sonner";
@@ -282,14 +283,17 @@ export default function CalendarSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
+    <div className="min-h-screen bg-white">
+      {/* Left Navigation */}
+      <LeftNavigation />
+      <div className="ml-[60px] flex flex-col min-h-screen">
+        {/* Header */}
+        <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
             <Menu className="w-5 h-5 text-text-primary" />
           </button>
           
@@ -504,6 +508,7 @@ export default function CalendarSetup() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

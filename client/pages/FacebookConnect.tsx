@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { X, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ChatInterface } from "../components/ChatInterface";
-import { UserAccountDropdown } from "../components/UserAccountDropdown";
-import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
+import { ChatInterface } from '../components/ChatInterface';
+import { UserAccountDropdown } from '../components/UserAccountDropdown';
+import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
+import LeftNavigation from '../components/layout/LeftNavigation';
 import { useUser } from "../hooks/useUser";
 import { toast } from "sonner";
 import { supabase } from "../lib/supabase";
@@ -323,9 +324,13 @@ export default function FacebookConnect() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
+    <div className="min-h-screen bg-white">
+      {/* Left Navigation */}
+      <LeftNavigation />
+      
+      <div className="ml-[60px] flex flex-col min-h-screen">
+        {/* Header */}
+        <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setSidebarOpen(true)}
@@ -538,6 +543,7 @@ export default function FacebookConnect() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
