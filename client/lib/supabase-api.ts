@@ -220,21 +220,6 @@ class SupabaseDirectApi {
     try {
       console.log(`🌐 SUPABASE_API: UPSERT into ${table}`, { data, options });
       
-      // If we have conflict columns and an id in the data, try UPDATE first
-      if (options?.onConflict && data.id) {
-        console.log(`🔄 SUPABASE_API: Attempting UPDATE for existing record with id: ${data.id}`);
-        
-        // Try to update by id first
-        const updateResult = await this.update(table, data, { id: data.id }, { authToken: options.authToken });
-        
-        if (!updateResult.error) {
-          console.log(`✅ SUPABASE_API: UPDATE successful`);
-          return updateResult;
-        }
-        
-        console.log(`⚠️ SUPABASE_API: UPDATE failed, falling back to INSERT:`, updateResult.error);
-      }
-      
       // Fall back to INSERT with proper upsert headers
       const endpoint = `/${table}`;
       const url = this.buildUrl(endpoint);
