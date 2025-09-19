@@ -2,6 +2,7 @@
 import { supabase } from './supabase';
 import { Profile } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { profilesApi } from './supabase-api';
 
 interface SignUpData {
   email: string;
@@ -464,42 +465,34 @@ export class AuthService {
         throw new Error('Failed to sign in');
       }
 
-      // Get user profile - try multiple lookup methods
+      // Get user profile - try multiple lookup methods using direct API
+      console.log('🔍 AUTH_SERVICE: Looking up user profile for sign in...');
       let profile = null;
       let profileError = null;
       
       // First try by id (if profiles.id = auth.user.id)
-      const idResult = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
+      console.log('🌐 AUTH_SERVICE: Using direct API for profile lookup by id');
+      const idResult = await profilesApi.getById(authData.user.id);
       
       if (idResult.data) {
         profile = idResult.data;
-        console.log('Found profile by id:', profile);
+        console.log('✅ AUTH_SERVICE: Found profile by id:', profile.id);
       } else {
         // Try by user_id column
-        const userIdResult = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', authData.user.id)
-          .single();
+        console.log('🌐 AUTH_SERVICE: Using direct API for profile lookup by user_id');
+        const userIdResult = await profilesApi.getByUserId(authData.user.id);
         
         if (userIdResult.data) {
           profile = userIdResult.data;
-          console.log('Found profile by user_id:', profile);
+          console.log('✅ AUTH_SERVICE: Found profile by user_id:', profile.id);
         } else if (authData.user.email) {
           // Finally try by email
-          const emailResult = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', authData.user.email)
-            .single();
+          console.log('🌐 AUTH_SERVICE: Using direct API for profile lookup by email');
+          const emailResult = await profilesApi.getByEmail(authData.user.email);
           
           if (emailResult.data) {
             profile = emailResult.data;
-            console.log('Found profile by email:', profile);
+            console.log('✅ AUTH_SERVICE: Found profile by email:', profile.id);
           } else {
             profileError = emailResult.error;
           }
@@ -507,7 +500,7 @@ export class AuthService {
       }
 
       if (!profile) {
-        console.warn('Failed to load user profile:', profileError);
+        console.warn('⚠️ AUTH_SERVICE: Failed to load user profile:', profileError);
       }
 
       return {
@@ -624,42 +617,34 @@ export class AuthService {
         return { user: null, profile: null };
       }
 
-      // Try to get profile but don't fail if it doesn't exist
+      // Try to get profile but don't fail if it doesn't exist using direct API
       try {
+        console.log('🔍 AUTH_SERVICE: Looking up profile for getCurrentUser...');
         let profile = null;
         
         // First try by id (if profiles.id = auth.user.id)
-        const idResult = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        console.log('🌐 AUTH_SERVICE: Using direct API for getCurrentUser profile lookup by id');
+        const idResult = await profilesApi.getById(user.id);
         
         if (idResult.data) {
           profile = idResult.data;
-          console.log('getCurrentUser: Found profile by id:', profile);
+          console.log('✅ AUTH_SERVICE: getCurrentUser found profile by id:', profile.id);
         } else {
           // Try by user_id column
-          const userIdResult = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+          console.log('🌐 AUTH_SERVICE: Using direct API for getCurrentUser profile lookup by user_id');
+          const userIdResult = await profilesApi.getByUserId(user.id);
           
           if (userIdResult.data) {
             profile = userIdResult.data;
-            console.log('getCurrentUser: Found profile by user_id:', profile);
+            console.log('✅ AUTH_SERVICE: getCurrentUser found profile by user_id:', profile.id);
           } else if (user.email) {
             // Finally try by email
-            const emailResult = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('email', user.email)
-              .single();
+            console.log('🌐 AUTH_SERVICE: Using direct API for getCurrentUser profile lookup by email');
+            const emailResult = await profilesApi.getByEmail(user.email);
             
             if (emailResult.data) {
               profile = emailResult.data;
-              console.log('getCurrentUser: Found profile by email:', profile);
+              console.log('✅ AUTH_SERVICE: getCurrentUser found profile by email:', profile.id);
             }
           }
         }
@@ -667,11 +652,11 @@ export class AuthService {
         // Cache the result
         const result = { user, profile };
         this.userCache = { user, profile, timestamp: Date.now() };
-        console.log('getCurrentUser: Cached user data for future calls');
+        console.log('✅ AUTH_SERVICE: getCurrentUser cached user data for future calls');
 
         return result;
       } catch (profileError) {
-        console.warn('Profile fetch failed, continuing with user only:', profileError);
+        console.warn('⚠️ AUTH_SERVICE: Profile fetch failed, continuing with user only:', profileError);
         // Cache even if profile failed - at least we have the user
         const result = { user, profile: null };
         this.userCache = { user, profile: null, timestamp: Date.now() };
