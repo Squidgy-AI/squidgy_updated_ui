@@ -352,8 +352,15 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
     console.log('📝 Final solar setup insert data:', insertData);
     console.log('🔧 Setup JSON configuration:', setupJson);
 
-    // Use upsert to insert or update if record already exists
-    const { data: result, error } = await solarSetupApi.upsert(insertData);
+    // Use UPDATE for existing records, INSERT for new records
+    let result, error;
+    if (existingRecord?.id) {
+      console.log('🔄 Updating existing solar setup record with ID:', existingRecord.id);
+      ({ data: result, error } = await solarSetupApi.updateById(existingRecord.id, insertData));
+    } else {
+      console.log('🆕 Creating new solar setup record');
+      ({ data: result, error } = await solarSetupApi.create(insertData));
+    }
 
     if (error) {
       console.error('Supabase solar setup upsert error:', error);
@@ -429,9 +436,23 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
       console.log('⚠️ No GHL data found for firm_user_id:', data.firm_user_id, 'agent_id:', data.agent_id);
     }
 
-    // Prepare data for database insert
+    // Check if record exists for UPDATE/INSERT logic
+    const { data: existingRecordArray } = await calendarSetupApi.getByUserId(data.firm_user_id);
+    const existingRecord = Array.isArray(existingRecordArray) ? existingRecordArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
+    
+    // Generate UUID for new records
+    const recordId = existingRecord?.id || crypto.randomUUID();
+    const createdAt = existingRecord?.created_at || new Date().toISOString();
+    
+    if (existingRecord?.id) {
+      console.log('📝 Found existing calendar setup record, will update:', existingRecord.id);
+    } else {
+      console.log('🆕 No existing calendar setup record, will create new with ID:', recordId);
+    }
+
+    // Prepare data for database operation
     const insertData = {
-      id: crypto.randomUUID(),
+      id: recordId,
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
       calendar_name: data.calendar_name,
@@ -445,7 +466,7 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
       allow_cancellations: data.allow_cancellations,
       business_hours: data.business_hours,
       setup_status: data.setup_status || 'completed',
-      created_at: new Date().toISOString(),
+      created_at: createdAt,
       last_updated_timestamp: new Date().toISOString(),
       ...(ghlData && {
         ghl_location_id: ghlData.ghl_location_id,
@@ -453,10 +474,17 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
       })
     };
 
-    console.log('📝 Final calendar setup insert data:', insertData);
+    console.log('📝 Final calendar setup data:', insertData);
 
-    // Use upsert to insert or update if record already exists
-    const { data: result, error } = await calendarSetupApi.upsert(insertData);
+    // Use UPDATE for existing records, INSERT for new records
+    let result, error;
+    if (existingRecord?.id) {
+      console.log('🔄 Updating existing calendar setup record with ID:', existingRecord.id);
+      ({ data: result, error } = await calendarSetupApi.updateById(existingRecord.id, insertData));
+    } else {
+      console.log('🆕 Creating new calendar setup record');
+      ({ data: result, error } = await calendarSetupApi.create(insertData));
+    }
 
     if (error) {
       console.error('Supabase calendar setup upsert error:', error);
@@ -531,9 +559,23 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
       console.log('⚠️ No GHL data found for firm_user_id:', data.firm_user_id, 'agent_id:', data.agent_id);
     }
 
-    // Prepare data for database insert
+    // Check if record exists for UPDATE/INSERT logic
+    const { data: existingRecordArray } = await notificationPreferencesApi.getByUserId(data.firm_user_id);
+    const existingRecord = Array.isArray(existingRecordArray) ? existingRecordArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
+    
+    // Generate UUID for new records
+    const recordId = existingRecord?.id || crypto.randomUUID();
+    const createdAt = existingRecord?.created_at || new Date().toISOString();
+    
+    if (existingRecord?.id) {
+      console.log('📝 Found existing notification preferences record, will update:', existingRecord.id);
+    } else {
+      console.log('🆕 No existing notification preferences record, will create new with ID:', recordId);
+    }
+
+    // Prepare data for database operation
     const insertData = {
-      id: crypto.randomUUID(),
+      id: recordId,
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id || 'SOL',
       email_enabled: data.email_enabled,
@@ -546,7 +588,7 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
       appointment_reminders: data.appointment_reminders,
       cancellations_reschedules: data.cancellations_reschedules,
       setup_status: data.setup_status || 'completed',
-      created_at: new Date().toISOString(),
+      created_at: createdAt,
       last_updated_timestamp: new Date().toISOString(),
       ...(ghlData && {
         ghl_location_id: ghlData.ghl_location_id,
@@ -554,10 +596,17 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
       })
     };
 
-    console.log('📝 Final notification preferences insert data:', insertData);
+    console.log('📝 Final notification preferences data:', insertData);
 
-    // Use upsert to insert or update if record already exists
-    const { data: result, error } = await notificationPreferencesApi.upsert(insertData);
+    // Use UPDATE for existing records, INSERT for new records
+    let result, error;
+    if (existingRecord?.id) {
+      console.log('🔄 Updating existing notification preferences record with ID:', existingRecord.id);
+      ({ data: result, error } = await notificationPreferencesApi.updateById(existingRecord.id, insertData));
+    } else {
+      console.log('🆕 Creating new notification preferences record');
+      ({ data: result, error } = await notificationPreferencesApi.create(insertData));
+    }
 
     if (error) {
       console.error('Supabase notification preferences upsert error:', error);
@@ -1124,10 +1173,17 @@ export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ 
       insertData.ghl_user_id = ghlData.soma_ghl_user_id;
     }
 
-    console.log('📝 Final business details insert data:', insertData);
+    console.log('📝 Final business details data:', insertData);
 
-    // Use upsert to insert or update if record already exists
-    const { data: result, error } = await businessDetailsApi.upsert(insertData);
+    // Use UPDATE for existing records, INSERT for new records
+    let result, error;
+    if (existingRecord?.id) {
+      console.log('🔄 Updating existing business details record with ID:', existingRecord.id);
+      ({ data: result, error } = await businessDetailsApi.updateById(existingRecord.id, insertData));
+    } else {
+      console.log('🆕 Creating new business details record');
+      ({ data: result, error } = await businessDetailsApi.create(insertData));
+    }
 
     if (error) {
       console.error('Supabase business details upsert error:', error);
