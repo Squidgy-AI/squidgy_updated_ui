@@ -23,6 +23,7 @@ import NotificationsPreferences from "./pages/NotificationsPreferences";
 import FacebookConnect from "./pages/FacebookConnect";
 import SetupComplete from "./pages/SetupComplete";
 import AccountSettings from "./pages/AccountSettings";
+import TestEmailCheck from "./pages/TestEmailCheck";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -111,6 +112,7 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<SetNewPassword />} />
+          <Route path="/test-email-check" element={<TestEmailCheck />} />
           <Route path="/" element={<Login />} />
           <Route path="/welcome" element={
             <ProtectedRoute>
