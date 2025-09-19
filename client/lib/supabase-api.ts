@@ -227,8 +227,9 @@ class SupabaseDirectApi {
       const headers = this.getHeaders(options?.authToken);
       headers['Prefer'] = 'return=representation,resolution=merge-duplicates';
       
+      // For tables with unique constraints, we need to handle conflicts properly
       if (options?.onConflict) {
-        headers['Prefer'] += `,on-conflict=${options.onConflict}`;
+        headers['Prefer'] = `return=representation,resolution=merge-duplicates,on-conflict=${options.onConflict}`;
       }
       
       const response = await fetch(url, {
@@ -341,7 +342,7 @@ export const calendarSetupApi = {
     supabaseApi.update('calendar_setup', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('calendar_setup', data, { authToken })
+    supabaseApi.upsert('calendar_setup', data, { onConflict: 'firm_user_id,agent_id', authToken })
 };
 
 // Chat History API
@@ -380,7 +381,7 @@ export const websiteAnalysisApi = {
     supabaseApi.update('website_analysis', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('website_analysis', data, { authToken }),
+    supabaseApi.upsert('website_analysis', data, { onConflict: 'firm_user_id,agent_id', authToken }),
     
   deleteById: (id: string, authToken?: string) =>
     supabaseApi.delete('website_analysis', { id }, { authToken })
@@ -401,7 +402,7 @@ export const facebookIntegrationsApi = {
     supabaseApi.update('facebook_integrations', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('facebook_integrations', data, { authToken }),
+    supabaseApi.upsert('facebook_integrations', data, { onConflict: 'firm_user_id,agent_id', authToken }),
     
   deleteById: (id: string, authToken?: string) =>
     supabaseApi.delete('facebook_integrations', { id }, { authToken })
@@ -440,7 +441,7 @@ export const notificationPreferencesApi = {
     supabaseApi.update('notification_preferences', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('notification_preferences', data, { authToken })
+    supabaseApi.upsert('notification_preferences', data, { onConflict: 'firm_user_id,agent_id', authToken })
 };
 
 // Solar Setup API
@@ -458,7 +459,7 @@ export const solarSetupApi = {
     supabaseApi.update('solar_setup', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('solar_setup', data, { authToken })
+    supabaseApi.upsert('solar_setup', data, { onConflict: 'firm_user_id,agent_id', authToken })
 };
 
 // Business Details API
@@ -476,5 +477,5 @@ export const businessDetailsApi = {
     supabaseApi.update('business_details', updateData, { id }, { authToken }),
     
   upsert: (data: any, authToken?: string) =>
-    supabaseApi.upsert('business_details', data, { authToken })
+    supabaseApi.upsert('business_details', data, { onConflict: 'firm_user_id,agent_id', authToken })
 };
