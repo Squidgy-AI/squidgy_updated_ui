@@ -208,7 +208,7 @@ class SupabaseDirectApi {
     }
   }
 
-  // UPSERT operations
+  // UPSERT operations - improved to handle conflicts properly
   async upsert<T = any>(
     table: string, 
     data: any | any[], 
@@ -220,17 +220,28 @@ class SupabaseDirectApi {
     try {
       console.log(`🌐 SUPABASE_API: UPSERT into ${table}`, { data, options });
       
+      // If we have conflict columns and an id in the data, try UPDATE first
+      if (options?.onConflict && data.id) {
+        console.log(`🔄 SUPABASE_API: Attempting UPDATE for existing record with id: ${data.id}`);
+        
+        // Try to update by id first
+        const updateResult = await this.update(table, data, { id: data.id }, { authToken: options.authToken });
+        
+        if (!updateResult.error) {
+          console.log(`✅ SUPABASE_API: UPDATE successful`);
+          return updateResult;
+        }
+        
+        console.log(`⚠️ SUPABASE_API: UPDATE failed, falling back to INSERT:`, updateResult.error);
+      }
+      
+      // Fall back to INSERT with proper upsert headers
       const endpoint = `/${table}`;
       const url = this.buildUrl(endpoint);
       const startTime = Date.now();
       
       const headers = this.getHeaders(options?.authToken);
       headers['Prefer'] = 'return=representation,resolution=merge-duplicates';
-      
-      // For tables with unique constraints, we need to handle conflicts properly
-      if (options?.onConflict) {
-        headers['Prefer'] = `return=representation,resolution=merge-duplicates,on-conflict=${options.onConflict}`;
-      }
       
       const response = await fetch(url, {
         method: 'POST',
