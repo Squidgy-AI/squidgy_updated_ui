@@ -77,28 +77,56 @@ export class AuthService {
       }
       console.log('✅ AUTH_SERVICE: Full name validation passed');
 
-      // Check if email already exists in profiles table
+      // Check if email already exists in profiles table using direct API call
+      // Note: Using direct fetch because Supabase JS client hangs in this environment
       console.log('🔍 AUTH_SERVICE: Checking if email already exists in profiles table...');
       const startEmailCheck = Date.now();
       
-      const { data: existingProfiles, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userData.email.toLowerCase());
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const url = `${supabaseUrl}/rest/v1/profiles?email=eq.${userData.email.toLowerCase()}&select=id`;
+        
+        console.log('🌐 AUTH_SERVICE: Using direct API call for email check');
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          }
+        });
 
-      const endEmailCheck = Date.now();
-      console.log(`⏱️ AUTH_SERVICE: Email check completed in ${endEmailCheck - startEmailCheck}ms`);
+        const endEmailCheck = Date.now();
+        console.log(`⏱️ AUTH_SERVICE: Email check completed in ${endEmailCheck - startEmailCheck}ms`);
 
-      if (checkError) {
-        console.error('❌ AUTH_SERVICE: Error checking existing email:', checkError);
+        if (!response.ok) {
+          console.error('❌ AUTH_SERVICE: Email check API call failed:', response.status, response.statusText);
+          throw new Error('Unable to verify email availability. Please try again.');
+        }
+        
+        const existingProfiles = await response.json();
+        console.log('📋 AUTH_SERVICE: Email check result:', existingProfiles);
+        
+        if (existingProfiles && existingProfiles.length > 0) {
+          console.log('❌ AUTH_SERVICE: Email already exists in profiles table');
+          throw new Error('An account with this email already exists. Please try logging in instead.');
+        }
+        console.log('✅ AUTH_SERVICE: Email is available for registration');
+        
+      } catch (error: any) {
+        const endEmailCheck = Date.now();
+        console.log(`⏱️ AUTH_SERVICE: Email check failed in ${endEmailCheck - startEmailCheck}ms`);
+        
+        if (error.message.includes('already exists')) {
+          throw error; // Re-throw email exists error
+        }
+        
+        console.error('❌ AUTH_SERVICE: Error checking existing email:', error);
         throw new Error('Unable to verify email availability. Please try again.');
-      } 
-      
-      if (existingProfiles && existingProfiles.length > 0) {
-        console.log('❌ AUTH_SERVICE: Email already exists in profiles table');
-        throw new Error('An account with this email already exists. Please try logging in instead.');
       }
-      console.log('✅ AUTH_SERVICE: Email is available for registration');
 
       // Create auth user with email confirmation
       // Always use production URL for email confirmations to avoid localhost issues
