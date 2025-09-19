@@ -185,28 +185,61 @@ export class AuthService {
       console.log('📝 AUTH_SERVICE: Starting profile creation process...');
       try {
         // First check if profile already exists (might be created by trigger)
+        // Note: Using direct API call because Supabase JS client hangs in this environment
         console.log('🔍 AUTH_SERVICE: Checking if profile already exists...');
         const startProfileCheck = Date.now();
         
-        const { data: existingProfile, error: checkError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
+        let existingProfile = null;
+        let checkError = null;
+        
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const url = `${supabaseUrl}/rest/v1/profiles?id=eq.${authData.user.id}&select=*`;
+          
+          console.log('🌐 AUTH_SERVICE: Using direct API call for profile check');
+          
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
+          });
 
-        const endProfileCheck = Date.now();
-        console.log(`⏱️ AUTH_SERVICE: Profile check completed in ${endProfileCheck - startProfileCheck}ms`);
+          const endProfileCheck = Date.now();
+          console.log(`⏱️ AUTH_SERVICE: Profile check completed in ${endProfileCheck - startProfileCheck}ms`);
+
+          if (response.ok) {
+            const profiles = await response.json();
+            existingProfile = profiles && profiles.length > 0 ? profiles[0] : null;
+            console.log('📋 AUTH_SERVICE: Profile check result:', existingProfile ? 'Found existing profile' : 'No profile found');
+          } else {
+            console.error('❌ AUTH_SERVICE: Profile check API call failed:', response.status, response.statusText);
+            checkError = { code: 'API_ERROR', message: `HTTP ${response.status}` };
+          }
+        } catch (error: any) {
+          const endProfileCheck = Date.now();
+          console.log(`⏱️ AUTH_SERVICE: Profile check failed in ${endProfileCheck - startProfileCheck}ms`);
+          console.error('❌ AUTH_SERVICE: Error during profile check:', error);
+          checkError = { code: 'NETWORK_ERROR', message: error.message };
+        }
 
         let profile = existingProfile;
 
         // Only create if profile doesn't exist
-        if (!existingProfile && checkError?.code === 'PGRST116') {
+        if (!existingProfile) {
           console.log('🆕 AUTH_SERVICE: Profile does not exist, creating new profile...');
           const startProfileCreation = Date.now();
           
-          const { data: newProfile, error: profileError } = await supabase
-            .from('profiles')
-            .insert({
+          try {
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const url = `${supabaseUrl}/rest/v1/profiles`;
+            
+            const profileData = {
               id: authData.user.id,
               user_id: uuidv4(),
               company_id: uuidv4(), // Generate company_id for new user
@@ -215,21 +248,41 @@ export class AuthService {
               role: 'member',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
+            };
+            
+            console.log('🌐 AUTH_SERVICE: Using direct API call for profile creation');
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(profileData)
+            });
 
-          const endProfileCreation = Date.now();
-          console.log(`⏱️ AUTH_SERVICE: Profile creation completed in ${endProfileCreation - startProfileCreation}ms`);
+            const endProfileCreation = Date.now();
+            console.log(`⏱️ AUTH_SERVICE: Profile creation completed in ${endProfileCreation - startProfileCreation}ms`);
 
-          if (profileError) {
-            console.error('❌ AUTH_SERVICE: Profile creation error:', profileError);
+            if (response.ok) {
+              const createdProfiles = await response.json();
+              profile = createdProfiles && createdProfiles.length > 0 ? createdProfiles[0] : profileData;
+              console.log('✅ AUTH_SERVICE: New profile created successfully');
+              console.log('🆔 AUTH_SERVICE: Profile ID:', profile.id);
+              console.log('👤 AUTH_SERVICE: Profile user_id:', profile.user_id);
+            } else {
+              const errorText = await response.text();
+              console.error('❌ AUTH_SERVICE: Profile creation API call failed:', response.status, errorText);
+              throw new Error('Failed to create user profile');
+            }
+          } catch (error: any) {
+            const endProfileCreation = Date.now();
+            console.log(`⏱️ AUTH_SERVICE: Profile creation failed in ${endProfileCreation - startProfileCreation}ms`);
+            console.error('❌ AUTH_SERVICE: Profile creation error:', error);
             throw new Error('Failed to create user profile');
           }
-          profile = newProfile;
-          console.log('✅ AUTH_SERVICE: New profile created successfully');
-          console.log('🆔 AUTH_SERVICE: Profile ID:', profile.id);
-          console.log('👤 AUTH_SERVICE: Profile user_id:', profile.user_id);
         } else if (existingProfile) {
           console.log('✅ AUTH_SERVICE: Profile already exists, using existing profile');
           console.log('🆔 AUTH_SERVICE: Existing profile ID:', existingProfile.id);
@@ -237,23 +290,48 @@ export class AuthService {
           // Update the existing profile with any missing data
           if (!existingProfile.user_id || !existingProfile.company_id) {
             console.log('🔄 AUTH_SERVICE: Updating existing profile with missing data...');
-            const { data: updatedProfile, error: updateError } = await supabase
-              .from('profiles')
-              .update({
+            
+            try {
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+              const url = `${supabaseUrl}/rest/v1/profiles?id=eq.${authData.user.id}`;
+              
+              const updateData = {
                 user_id: existingProfile.user_id || uuidv4(),
                 company_id: existingProfile.company_id || uuidv4(),
                 full_name: existingProfile.full_name || userData.fullName.trim(),
                 updated_at: new Date().toISOString()
-              })
-              .eq('id', authData.user.id)
-              .select()
-              .single();
-            
-            if (!updateError) {
-              profile = updatedProfile;
-              console.log('✅ AUTH_SERVICE: Profile updated successfully');
-            } else {
-              console.error('⚠️ AUTH_SERVICE: Profile update failed:', updateError);
+              };
+              
+              console.log('🌐 AUTH_SERVICE: Using direct API call for profile update');
+              
+              const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(updateData)
+              });
+              
+              if (response.ok) {
+                const updatedProfiles = await response.json();
+                if (updatedProfiles && updatedProfiles.length > 0) {
+                  profile = updatedProfiles[0];
+                  console.log('✅ AUTH_SERVICE: Profile updated successfully');
+                } else {
+                  // Merge update data with existing profile
+                  profile = { ...existingProfile, ...updateData };
+                  console.log('✅ AUTH_SERVICE: Profile updated (merged data)');
+                }
+              } else {
+                const errorText = await response.text();
+                console.error('⚠️ AUTH_SERVICE: Profile update failed:', response.status, errorText);
+              }
+            } catch (error: any) {
+              console.error('⚠️ AUTH_SERVICE: Profile update error:', error);
             }
           }
         }
