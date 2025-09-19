@@ -43,43 +43,70 @@ export class AuthService {
   // Sign up user
   async signUp(userData: SignUpData): Promise<{ user: any; profile?: Profile; needsEmailConfirmation?: boolean; message?: string }> {
     try {
+      console.log('🔑 AUTH_SERVICE: signUp started');
+      console.log('📧 AUTH_SERVICE: Email provided:', userData.email ? `${userData.email.substring(0, 3)}***@${userData.email.split('@')[1] || '***'}` : 'empty');
+      console.log('👤 AUTH_SERVICE: Full name provided:', userData.fullName ? `${userData.fullName.substring(0, 2)}***` : 'empty');
+      
       // Check if Supabase is configured
+      console.log('🔧 AUTH_SERVICE: Checking Supabase configuration...');
+      console.log('🔧 AUTH_SERVICE: VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Not set');
+      
       if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co') {
+        console.log('❌ AUTH_SERVICE: Supabase configuration check failed');
         throw new Error('Supabase is not configured. Please add your Supabase credentials to the .env file.');
       }
+      console.log('✅ AUTH_SERVICE: Supabase configuration check passed');
 
       // Validate input
+      console.log('📝 AUTH_SERVICE: Starting form validation...');
       if (!this.isValidEmail(userData.email)) {
+        console.log('❌ AUTH_SERVICE: Email validation failed');
         throw new Error('Please enter a valid email address');
       }
+      console.log('✅ AUTH_SERVICE: Email validation passed');
 
       if (!this.isValidPassword(userData.password)) {
+        console.log('❌ AUTH_SERVICE: Password validation failed');
         throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
       }
+      console.log('✅ AUTH_SERVICE: Password validation passed');
 
       if (!userData.fullName || userData.fullName.trim().length < 2) {
+        console.log('❌ AUTH_SERVICE: Full name validation failed');
         throw new Error('Full name must be at least 2 characters');
       }
+      console.log('✅ AUTH_SERVICE: Full name validation passed');
 
       // Check if email already exists in profiles table
+      console.log('🔍 AUTH_SERVICE: Checking if email already exists in profiles table...');
+      const startEmailCheck = Date.now();
+      
       const { data: existingProfiles, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', userData.email.toLowerCase());
 
+      const endEmailCheck = Date.now();
+      console.log(`⏱️ AUTH_SERVICE: Email check completed in ${endEmailCheck - startEmailCheck}ms`);
+
       if (checkError) {
-        console.error('Error checking existing email:', checkError);
+        console.error('❌ AUTH_SERVICE: Error checking existing email:', checkError);
         throw new Error('Unable to verify email availability. Please try again.');
       } 
       
       if (existingProfiles && existingProfiles.length > 0) {
+        console.log('❌ AUTH_SERVICE: Email already exists in profiles table');
         throw new Error('An account with this email already exists. Please try logging in instead.');
       }
+      console.log('✅ AUTH_SERVICE: Email is available for registration');
 
       // Create auth user with email confirmation
       // Always use production URL for email confirmations to avoid localhost issues
+      console.log('🚀 AUTH_SERVICE: Creating Supabase auth user...');
       const redirectUrl = `${import.meta.env.VITE_FRONTEND_URL}/login`;
-        
+      console.log('🔗 AUTH_SERVICE: Email redirect URL:', redirectUrl);
+      
+      const startAuthCreation = Date.now();
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email.toLowerCase(),
         password: userData.password,
@@ -92,9 +119,14 @@ export class AuthService {
           // skipEmailConfirmation: true
         }
       });
+      const endAuthCreation = Date.now();
+      console.log(`⏱️ AUTH_SERVICE: Supabase auth creation completed in ${endAuthCreation - startAuthCreation}ms`);
 
       if (authError) {
-        console.error('Supabase Auth Error:', authError);
+        console.error('❌ AUTH_SERVICE: Supabase Auth Error:', authError);
+        console.error('❌ AUTH_SERVICE: Auth Error Message:', authError.message);
+        console.error('❌ AUTH_SERVICE: Auth Error Code:', authError.status);
+        
         if (authError.message.includes('rate limit') || 
             authError.message.includes('too many requests') ||
             authError.message.includes('429')) {
@@ -112,23 +144,38 @@ export class AuthService {
       }
 
       if (!authData.user) {
+        console.log('❌ AUTH_SERVICE: No user returned from Supabase auth');
         throw new Error('Failed to create user account');
       }
+      
+      console.log('✅ AUTH_SERVICE: Supabase auth user created successfully');
+      console.log('👤 AUTH_SERVICE: Auth user ID:', authData.user.id);
+      console.log('📧 AUTH_SERVICE: Auth user email:', authData.user.email);
+      console.log('🔐 AUTH_SERVICE: Session created:', !!authData.session);
 
       // Create profile immediately after user creation
+      console.log('📝 AUTH_SERVICE: Starting profile creation process...');
       try {
         // First check if profile already exists (might be created by trigger)
+        console.log('🔍 AUTH_SERVICE: Checking if profile already exists...');
+        const startProfileCheck = Date.now();
+        
         const { data: existingProfile, error: checkError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authData.user.id)
           .single();
 
+        const endProfileCheck = Date.now();
+        console.log(`⏱️ AUTH_SERVICE: Profile check completed in ${endProfileCheck - startProfileCheck}ms`);
+
         let profile = existingProfile;
 
         // Only create if profile doesn't exist
         if (!existingProfile && checkError?.code === 'PGRST116') {
-          console.log('Profile does not exist, creating new profile...');
+          console.log('🆕 AUTH_SERVICE: Profile does not exist, creating new profile...');
+          const startProfileCreation = Date.now();
+          
           const { data: newProfile, error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -144,15 +191,24 @@ export class AuthService {
             .select()
             .single();
 
+          const endProfileCreation = Date.now();
+          console.log(`⏱️ AUTH_SERVICE: Profile creation completed in ${endProfileCreation - startProfileCreation}ms`);
+
           if (profileError) {
-            console.error('Profile creation error:', profileError);
+            console.error('❌ AUTH_SERVICE: Profile creation error:', profileError);
             throw new Error('Failed to create user profile');
           }
           profile = newProfile;
+          console.log('✅ AUTH_SERVICE: New profile created successfully');
+          console.log('🆔 AUTH_SERVICE: Profile ID:', profile.id);
+          console.log('👤 AUTH_SERVICE: Profile user_id:', profile.user_id);
         } else if (existingProfile) {
-          console.log('Profile already exists, using existing profile');
+          console.log('✅ AUTH_SERVICE: Profile already exists, using existing profile');
+          console.log('🆔 AUTH_SERVICE: Existing profile ID:', existingProfile.id);
+          
           // Update the existing profile with any missing data
           if (!existingProfile.user_id || !existingProfile.company_id) {
+            console.log('🔄 AUTH_SERVICE: Updating existing profile with missing data...');
             const { data: updatedProfile, error: updateError } = await supabase
               .from('profiles')
               .update({
@@ -167,57 +223,87 @@ export class AuthService {
             
             if (!updateError) {
               profile = updatedProfile;
+              console.log('✅ AUTH_SERVICE: Profile updated successfully');
+            } else {
+              console.error('⚠️ AUTH_SERVICE: Profile update failed:', updateError);
             }
           }
         }
 
         // Profile created successfully - now trigger GHL registration
         if (profile) {
-          console.log('✅ Profile created successfully, starting GHL registration...');
+          console.log('✅ AUTH_SERVICE: Profile created successfully, starting GHL registration...');
+          console.log('🌐 AUTH_SERVICE: Backend URL:', import.meta.env.VITE_BACKEND_URL);
+          
           try {
             const backendUrl = import.meta.env.VITE_BACKEND_URL;
+            const ghlPayload = {
+              full_name: userData.fullName.trim(),
+              email: userData.email.toLowerCase()
+            };
+            
+            console.log('📡 AUTH_SERVICE: Calling GHL registration endpoint...');
+            console.log('📦 AUTH_SERVICE: GHL payload:', ghlPayload);
+            
+            const startGhlCall = Date.now();
             const ghlResponse = await fetch(`${backendUrl}/api/ghl/create-subaccount-and-user-registration`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                full_name: userData.fullName.trim(),
-                email: userData.email.toLowerCase()
-              })
+              body: JSON.stringify(ghlPayload)
             });
+            const endGhlCall = Date.now();
+            
+            console.log(`⏱️ AUTH_SERVICE: GHL API call completed in ${endGhlCall - startGhlCall}ms`);
+            console.log('🌐 AUTH_SERVICE: GHL Response status:', ghlResponse.status);
+            console.log('🌐 AUTH_SERVICE: GHL Response ok:', ghlResponse.ok);
             
             const ghlResult = await ghlResponse.json();
-            console.log('📊 GHL Registration Response:', ghlResult);
+            console.log('📊 AUTH_SERVICE: GHL Registration Response:', ghlResult);
             
             if (ghlResponse.ok && ghlResult.status === 'accepted') {
-              console.log('🚀 GHL account creation started successfully!');
-              console.log('📝 GHL Record ID:', ghlResult.ghl_record_id);
+              console.log('🚀 AUTH_SERVICE: GHL account creation started successfully!');
+              console.log('📝 AUTH_SERVICE: GHL Record ID:', ghlResult.ghl_record_id);
             } else {
-              console.warn('⚠️ GHL registration failed:', ghlResult);
+              console.warn('⚠️ AUTH_SERVICE: GHL registration failed:', ghlResult);
+              console.warn('⚠️ AUTH_SERVICE: GHL response status:', ghlResponse.status);
               // Don't throw error - user registration was successful
             }
           } catch (ghlError) {
-            console.error('❌ GHL registration error:', ghlError);
+            console.error('❌ AUTH_SERVICE: GHL registration error:', ghlError);
+            console.error('❌ AUTH_SERVICE: GHL error stack:', ghlError.stack);
             // Don't throw error - user registration was successful
           }
         }
         
       } catch (profileCreationError) {
-        console.error('Error creating profile:', profileCreationError);
+        console.error('❌ AUTH_SERVICE: Error creating profile:', profileCreationError);
         throw new Error('Failed to create user profile');
       }
       
-      return {
+      console.log('🎯 AUTH_SERVICE: Preparing final response...');
+      const finalResponse = {
         user: authData.user,
         needsEmailConfirmation: !authData.session,
         message: !authData.session 
           ? 'Account created successfully! Please check your email and click the confirmation link to verify your account.'
           : 'Account created and verified successfully!'
       };
+      
+      console.log('📋 AUTH_SERVICE: Final response:', {
+        hasUser: !!finalResponse.user,
+        needsEmailConfirmation: finalResponse.needsEmailConfirmation,
+        message: finalResponse.message
+      });
+      
+      console.log('✅ AUTH_SERVICE: signUp process completed successfully');
+      return finalResponse;
 
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('❌ AUTH_SERVICE: Signup error:', error);
+      console.error('❌ AUTH_SERVICE: Error message:', error.message);
+      console.error('❌ AUTH_SERVICE: Error stack:', error.stack);
       throw new Error(error.message || 'Failed to create account');
     }
   }

@@ -52,11 +52,15 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        console.log('UserProvider: Starting user initialization...');
+        console.log('🚀 USER_PROVIDER: Starting user initialization...');
         
         // Quick check for existing session to prevent unnecessary redirects
+        const startSessionCheck = Date.now();
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('UserProvider: Quick session check:', !!session);
+        const endSessionCheck = Date.now();
+        console.log(`⏱️ USER_PROVIDER: Session check completed in ${endSessionCheck - startSessionCheck}ms`);
+        console.log('🔐 USER_PROVIDER: Session exists:', !!session);
+        console.log('👤 USER_PROVIDER: Session user:', session?.user?.id || 'none');
         
         // Check if we're in development mode
         const isDevelopment = import.meta.env.VITE_APP_ENV === 'development' || 
@@ -186,11 +190,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         }
         
         // Production mode - check Supabase authentication with retry logic
-        console.log('UserProvider: Production mode - checking Supabase auth');
+        console.log('🔧 USER_PROVIDER: Production mode - checking Supabase auth');
         
         // If we already found a session, set authenticated immediately to prevent redirect
         if (session?.user) {
-          console.log('UserProvider: Session exists, setting authenticated state immediately');
+          console.log('✅ USER_PROVIDER: Session exists, setting authenticated state immediately');
+          console.log('👤 USER_PROVIDER: Setting user:', session.user.id);
           setIsAuthenticated(true);
           setUser(session.user);
         }
@@ -201,16 +206,26 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         
         while (retryCount < maxRetries && !authResult) {
           try {
+            console.log(`🔄 USER_PROVIDER: Auth check attempt ${retryCount + 1}/${maxRetries}...`);
+            const startAuthCheck = Date.now();
+            
             const { user: authUser, profile: userProfile } = await authService.getCurrentUser();
+            
+            const endAuthCheck = Date.now();
+            console.log(`⏱️ USER_PROVIDER: getCurrentUser completed in ${endAuthCheck - startAuthCheck}ms`);
+            console.log('👤 USER_PROVIDER: Auth user found:', !!authUser);
+            console.log('📋 USER_PROVIDER: Profile found:', !!userProfile);
             
             if (authUser) {
               // Wait for profile if user exists but profile is missing
               if (!userProfile) {
-                console.log('UserProvider: User found but profile missing, waiting...');
+                console.log('⚠️ USER_PROVIDER: User found but profile missing, waiting 1 second...');
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Try to get profile again
+                console.log('🔄 USER_PROVIDER: Retrying profile fetch...');
                 const { profile: retryProfile } = await authService.getCurrentUser();
+                console.log('📋 USER_PROVIDER: Retry profile found:', !!retryProfile);
                 authResult = { user: authUser, profile: retryProfile };
               } else {
                 authResult = { user: authUser, profile: userProfile };
@@ -219,8 +234,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             break;
           } catch (error) {
             retryCount++;
-            console.log(`UserProvider: Auth check attempt ${retryCount} failed:`, error);
+            console.log(`❌ USER_PROVIDER: Auth check attempt ${retryCount} failed:`, error);
             if (retryCount < maxRetries) {
+              console.log(`⏰ USER_PROVIDER: Waiting 1 second before retry ${retryCount + 1}...`);
               await new Promise(resolve => setTimeout(resolve, 1000));
             }
           }
