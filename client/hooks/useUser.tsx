@@ -52,12 +52,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // Initialize user data on mount
   useEffect(() => {
     const initializeUser = async () => {
-      // Set a timeout to prevent infinite hanging
-      const initTimeout = setTimeout(() => {
-        console.error('❌ USER_PROVIDER: Initialization timeout after 10 seconds - forcing ready state');
-        setIsReady(true);
-      }, 10000);
-
       try {
         console.log('🚀 USER_PROVIDER: Starting user initialization...');
         
@@ -103,26 +97,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             console.log('🌐 USER_PROVIDER: Using direct API for dev profile lookup');
             
             // First try by user ID
-            console.log('🔍 USER_PROVIDER: Attempting profilesApi.getById with timeout protection...');
-            const profilePromise = profilesApi.getById(devUserId);
-            const profileTimeout = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Profile lookup timeout')), 5000)
-            );
-            let result = await Promise.race([profilePromise, profileTimeout]);
+            let result = await profilesApi.getById(devUserId);
             profileData = result.data;
-            console.log('✅ USER_PROVIDER: profilesApi.getById completed successfully');
               
             if (!profileData) {
               // If not found by ID, try by email
               console.log('🌐 USER_PROVIDER: Trying profile lookup by email');
-              console.log('🔍 USER_PROVIDER: Attempting profilesApi.getByEmail with timeout protection...');
-              const emailPromise = profilesApi.getByEmail(devUserEmail);
-              const emailTimeout = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Email lookup timeout')), 5000)
-              );
-              result = await Promise.race([emailPromise, emailTimeout]);
+              result = await profilesApi.getByEmail(devUserEmail);
               profileData = result.data;
-              console.log('✅ USER_PROVIDER: profilesApi.getByEmail completed successfully');
             }
             
             console.log('✅ USER_PROVIDER: Loaded profile from direct API:', {
@@ -194,7 +176,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           // Start session monitoring even in dev mode
           sessionManager.startSessionMonitoring();
           
-          clearTimeout(initTimeout);
           setIsReady(true);
           return;
         }
@@ -320,7 +301,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         }
         setSessionIdState(currentSessionId);
 
-        clearTimeout(initTimeout);
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize user:', error);
@@ -356,7 +336,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           setProfile(null);
         }
         
-        clearTimeout(initTimeout);
         setIsReady(true);
       }
     };
