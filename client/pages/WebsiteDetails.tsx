@@ -9,7 +9,6 @@ import { websiteApi, callN8NWebhook, saveWebsiteAnalysis, getWebsiteAnalysis } f
 import { ChatInterface } from '../components/ChatInterface';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
 import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
-import LeftNavigation from '../components/layout/LeftNavigation';
 
 // Tag Chip Component
 function TagChip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -375,13 +374,9 @@ export default function WebsiteDetails() {
 
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left Navigation */}
-      <LeftNavigation />
-      
-      <div className="ml-[60px] flex flex-col min-h-screen">
-        {/* Header */}
-        <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setSidebarOpen(true)}
@@ -602,7 +597,6 @@ export default function WebsiteDetails() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
-import LeftNavigation from "../components/layout/LeftNavigation";
 import { useUser } from "../hooks/useUser";
 import { saveNotificationPreferences, getNotificationPreferences } from "../lib/api";
 import { toast } from "sonner";
@@ -217,31 +216,27 @@ export default function NotificationsPreferences() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left Navigation */}
-      <LeftNavigation />
-      
-      <div className="ml-[60px] flex flex-col min-h-screen">
-        {/* Header */}
-        <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Menu className="w-5 h-5 text-text-primary" />
-            </button>
-            
-            <div className="w-6 h-6 bg-squidgy-gradient rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">S</span>
-            </div>
-            <span className="font-bold text-lg text-text-primary">Squidgy</span>
-            <UserAccountDropdown />
-          </div>
-          <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
-            Close (save draft)
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Menu className="w-5 h-5 text-text-primary" />
           </button>
+          
+          <div className="w-6 h-6 bg-squidgy-gradient rounded flex items-center justify-center">
+            <span className="text-white text-xs font-bold">S</span>
+          </div>
+          <span className="font-bold text-lg text-text-primary">Squidgy</span>
+          <UserAccountDropdown />
         </div>
+        <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
+          Close (save draft)
+        </button>
+      </div>
       
       {/* Progress Bar */}
       <div className="h-1 bg-grey-800">
@@ -419,7 +414,6 @@ export default function NotificationsPreferences() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

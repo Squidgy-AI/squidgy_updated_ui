@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { X, Menu, Sun, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ChatInterface } from '../components/ChatInterface';
-import { UserAccountDropdown } from '../components/UserAccountDropdown';
-import { SetupStepsSidebar } from '../components/SetupStepsSidebar';
-import LeftNavigation from '../components/layout/LeftNavigation';
+import { ChatInterface } from "../components/ChatInterface";
+import { UserAccountDropdown } from "../components/UserAccountDropdown";
+import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
 import { saveSolarSetup, getSolarSetup } from "../lib/api";
 import { toast } from "sonner";
@@ -166,13 +165,9 @@ export default function SolarSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left Navigation */}
-      <LeftNavigation />
-      
-      <div className="ml-[60px] flex flex-col min-h-screen">
-        {/* Header */}
-        <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="h-16 bg-white border-b border-grey-700 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setSidebarOpen(true)}
@@ -497,7 +492,6 @@ export default function SolarSetup() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
