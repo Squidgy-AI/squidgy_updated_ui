@@ -1,6 +1,6 @@
 // TestEmailCheck.tsx - Test page for email existence check
 import React, { useState } from 'react';
-import { testDmacEmail, testEmailWithTimeout, testSupabaseConnection } from '../lib/test-email-check';
+import { testDmacEmail, testEmailWithTimeout, testSupabaseConnection, testDirectApiCall } from '../lib/test-email-check';
 
 export default function TestEmailCheck() {
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +55,27 @@ export default function TestEmailCheck() {
     }
   };
 
+  const runDirectApiTest = async () => {
+    console.log('🌐 Running direct API test...');
+    setIsLoading(true);
+    setResult(null);
+    
+    try {
+      const testResult = await testDirectApiCall('dmacproject123@gmail.com');
+      setResult(testResult);
+    } catch (error) {
+      console.error('❌ Direct API test failed:', error);
+      setResult({
+        exists: false,
+        error: `Direct API test exception: ${error}`,
+        timing: 0,
+        data: null
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full">
@@ -84,6 +105,14 @@ export default function TestEmailCheck() {
             className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Testing...' : 'Run Quick Test (no timeout)'}
+          </button>
+          
+          <button
+            onClick={runDirectApiTest}
+            disabled={isLoading}
+            className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Testing...' : 'Run Direct API Test (bypass Supabase client)'}
           </button>
         </div>
 

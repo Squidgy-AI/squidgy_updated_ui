@@ -144,3 +144,80 @@ export const testSupabaseConnection = async (): Promise<void> => {
     console.error('❌ EMAIL_TEST: Exception during connection test:', error);
   }
 };
+
+// Test direct HTTP API call bypassing Supabase client
+export const testDirectApiCall = async (email: string): Promise<EmailCheckResult> => {
+  console.log('🌐 EMAIL_TEST: Testing direct HTTP API call...');
+  console.log(`📧 EMAIL_TEST: Testing email via direct API: ${email}`);
+  
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    console.log('🔧 EMAIL_TEST: Supabase URL:', supabaseUrl);
+    console.log('🔧 EMAIL_TEST: Supabase Key:', supabaseKey ? 'Set' : 'Missing');
+    
+    const url = `${supabaseUrl}/rest/v1/profiles?email=eq.${email.toLowerCase()}&select=id`;
+    
+    console.log('🌐 EMAIL_TEST: Direct API URL:', url);
+    
+    const startTime = Date.now();
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      }
+    });
+    
+    const endTime = Date.now();
+    const timingMs = endTime - startTime;
+    
+    console.log(`⏱️ EMAIL_TEST: Direct API call completed in ${timingMs}ms`);
+    console.log('📊 EMAIL_TEST: Response status:', response.status);
+    console.log('📊 EMAIL_TEST: Response ok:', response.ok);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ EMAIL_TEST: API call failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
+      return {
+        exists: false,
+        error: `HTTP ${response.status}: ${errorText}`,
+        timing: timingMs,
+        data: null
+      };
+    }
+    
+    const data = await response.json();
+    console.log('📋 EMAIL_TEST: API Response data:', data);
+    
+    const emailExists = data && data.length > 0;
+    
+    console.log(`✅ EMAIL_TEST: Direct API call successful - Email exists: ${emailExists}`);
+    
+    return {
+      exists: emailExists,
+      error: null,
+      timing: timingMs,
+      data: data
+    };
+    
+  } catch (error: any) {
+    console.error('❌ EMAIL_TEST: Direct API call exception:', error);
+    
+    return {
+      exists: false,
+      error: `Direct API exception: ${error.message}`,
+      timing: 0,
+      data: null
+    };
+  }
+};
