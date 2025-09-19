@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Facebook, ExternalLink, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { profilesApi } from '../lib/supabase-api';
 import { toast } from 'sonner';
 
 interface FacebookSetupProps {
@@ -49,11 +50,7 @@ const FacebookSetup: React.FC<FacebookSetupProps> = ({
         console.log('🔍 Getting user profile for:', user.email);
 
         // Get profile to get firm_user_id
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name')
-          .eq('email', user.email)
-          .single();
+        const { data: profile, error: profileError } = await profilesApi.getByEmail(user.email);
 
         if (profileError) {
           console.error('❌ Error getting profile:', profileError);

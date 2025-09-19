@@ -367,51 +367,43 @@ export const UserProvider = ({ children }: UserProviderProps) => {
               
               console.log('UserProvider: Email confirmation detected:', isEmailConfirmation);
               
-              // Only get profile data, don't call getCurrentUser
+              // Only get profile data, don't call getCurrentUser - using direct API
               let userProfile = null;
               try {
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', authUser.id)
-                  .single();
+                console.log('🌐 USER_PROVIDER: Using direct API for auth listener profile lookup by id');
+                const profileResult = await profilesApi.getById(authUser.id);
+                userProfile = profileResult.data;
                 
-                if (!profile && authUser.email) {
+                if (!userProfile && authUser.email) {
                   // Fallback to email lookup
-                  const emailResult = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('email', authUser.email)
-                    .single();
+                  console.log('🌐 USER_PROVIDER: Using direct API for auth listener profile lookup by email');
+                  const emailResult = await profilesApi.getByEmail(authUser.email);
                   userProfile = emailResult.data;
-                } else {
-                  userProfile = profile;
                 }
               } catch (profileError) {
                 console.warn('Profile fetch failed in auth listener:', profileError);
               }
               
-              // If this is an email confirmation and we have a profile, update email_confirmed
+              // If this is an email confirmation and we have a profile, update email_confirmed using direct API
               if (isEmailConfirmation && userProfile) {
                 try {
-                  console.log('UserProvider: Updating email_confirmed to true for user:', authUser.email);
-                  const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                      email_confirmed: true,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', userProfile.id);
+                  console.log('🔄 USER_PROVIDER: Updating email_confirmed to true for user:', authUser.email);
+                  console.log('🌐 USER_PROVIDER: Using direct API for email confirmation update');
                   
-                  if (updateError) {
-                    console.error('Failed to update email_confirmed:', updateError);
+                  const updateResult = await profilesApi.updateById(userProfile.id, { 
+                    email_confirmed: true,
+                    updated_at: new Date().toISOString()
+                  });
+                  
+                  if (updateResult.error) {
+                    console.error('❌ USER_PROVIDER: Failed to update email_confirmed:', updateResult.error);
                   } else {
-                    console.log('✅ Email confirmation status updated successfully');
+                    console.log('✅ USER_PROVIDER: Email confirmation status updated successfully');
                     // Update the local profile object
                     userProfile = { ...userProfile, email_confirmed: true };
                   }
                 } catch (confirmError) {
-                  console.error('Error updating email confirmation:', confirmError);
+                  console.error('❌ USER_PROVIDER: Error updating email confirmation:', confirmError);
                 }
               }
               
@@ -425,11 +417,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
               if (authUser?.email) {
                 console.log('UserProvider AuthListener: Doing email lookup for:', authUser.email);
                 try {
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('user_id')
-                    .eq('email', authUser.email)
-                    .single();
+                  const { data: profileData } = await profilesApi.getByEmail(authUser.email);
                   
                   if (profileData?.user_id) {
                     currentUserId = profileData.user_id;
@@ -547,24 +535,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     if (!userId) return;
     
     try {
-      const { supabase } = await import('../lib/supabase');
-      
       // Try to fetch updated profile from database
-      let { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      let { data } = await profilesApi.getById(userId);
         
       if (!data) {
         // If not found by ID, try by email
         const userEmail = user?.email || localStorage.getItem('dev_user_email');
         if (userEmail) {
-          const result = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', userEmail)
-            .single();
+          const result = await profilesApi.getByEmail(userEmail);
           data = result.data;
         }
       }

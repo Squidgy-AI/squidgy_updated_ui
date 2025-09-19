@@ -7,6 +7,7 @@ import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
 import { useUser } from "../hooks/useUser";
 import { toast } from "sonner";
 import { supabase } from "../lib/supabase";
+import { profilesApi } from "../lib/supabase-api";
 
 // Helper function to generate logger ID
 const generateLoggerId = (): string => {
@@ -43,11 +44,7 @@ export default function FacebookConnect() {
         }
 
         // Get profile to get firm_user_id
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_id, full_name')
-          .eq('email', user.email)
-          .single();
+        const { data: profile } = await profilesApi.getByEmail(user.email);
 
         if (profile?.user_id) {
           setFirmUserId(profile.user_id);

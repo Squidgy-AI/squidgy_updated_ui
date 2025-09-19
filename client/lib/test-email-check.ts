@@ -1,5 +1,6 @@
 // test-email-check.ts - Isolated email existence check test
 import { supabase } from './supabase';
+import { profilesApi } from './supabase-api';
 
 interface EmailCheckResult {
   exists: boolean;
@@ -18,10 +19,7 @@ export const testEmailExistence = async (email: string): Promise<EmailCheckResul
     const startEmailCheck = Date.now();
     
     // Test the exact same query from auth-service
-    const { data: existingProfiles, error: checkError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email.toLowerCase());
+    const { data: existingProfiles, error: checkError } = await profilesApi.getByEmail(email.toLowerCase());
     
     const endEmailCheck = Date.now();
     const timingMs = endEmailCheck - startEmailCheck;
@@ -50,7 +48,7 @@ export const testEmailExistence = async (email: string): Promise<EmailCheckResul
       };
     }
     
-    const emailExists = existingProfiles && existingProfiles.length > 0;
+    const emailExists = existingProfiles && existingProfiles.id;
     
     if (emailExists) {
       console.log('✅ EMAIL_TEST: Email already exists in profiles table');
@@ -129,10 +127,7 @@ export const testSupabaseConnection = async (): Promise<void> => {
   
   try {
     // Test basic connection with a simple query
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('count')
-      .limit(1);
+    const { data, error } = await profilesApi.getById('test_connection_check');
     
     if (error) {
       console.error('❌ EMAIL_TEST: Supabase connection error:', error);
