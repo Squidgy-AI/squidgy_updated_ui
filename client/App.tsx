@@ -1,12 +1,12 @@
 import "./global.css";
 
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "./components/ui/toaster";
 import { createRoot } from "react-dom/client";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster as Sonner } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { UserProvider } from "@/hooks/useUser";
+import { UserProvider } from "./hooks/useUser";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useEffect } from "react";
 import { supabase } from "./lib/supabase";
@@ -22,9 +22,11 @@ import CalendarSetup from "./pages/CalendarSetup";
 import NotificationsPreferences from "./pages/NotificationsPreferences";
 import FacebookConnect from "./pages/FacebookConnect";
 import SetupComplete from "./pages/SetupComplete";
+import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
 import TestEmailCheck from "./pages/TestEmailCheck";
 import NotFound from "./pages/NotFound";
+import ChatPage from "./pages/ChatPage";
 
 const queryClient = new QueryClient();
 
@@ -154,9 +156,19 @@ const App = () => (
               <SetupComplete />
             </ProtectedRoute>
           } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/account-settings" element={
             <ProtectedRoute>
               <AccountSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat" element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

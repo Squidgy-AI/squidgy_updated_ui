@@ -85,7 +85,7 @@ export default function Index() {
 
             {/* Secondary Button */}
             <button 
-              onClick={() => navigate('/setup-complete')}
+              onClick={() => navigate('/dashboard')}
               className="w-full py-3 px-5 text-squidgy-primary font-bold text-[15px] leading-6 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
             >
               Go to dashboard
