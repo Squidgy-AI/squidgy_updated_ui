@@ -1,4 +1,15 @@
 import { toast } from "sonner";
+import {
+  profilesApi,
+  calendarSetupApi,
+  chatHistoryApi,
+  websiteAnalysisApi,
+  facebookIntegrationsApi,
+  ghlSubaccountsApi,
+  notificationPreferencesApi,
+  solarSetupApi,
+  businessDetailsApi
+} from './supabase-api';
 
 // API client for Squidgy backend
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -236,8 +247,6 @@ interface SolarSetupData {
 
 export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: boolean; message: string }> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 Debugging solar setup save:', {
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id,
@@ -246,21 +255,13 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
     });
     
     // First, let's check if this user exists in profiles table (same logic as other saves)
-    const { data: profileCheck, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('user_id', data.firm_user_id)
-      .single();
+    const { data: profileCheck, error: profileError } = await profilesApi.getByUserId(data.firm_user_id);
     
     if (profileError || !profileCheck) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
-      const { data: profileById, error: profileByIdError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email')
-        .eq('id', data.firm_user_id)
-        .single();
+      const { data: profileById, error: profileByIdError } = await profilesApi.getById(data.firm_user_id);
         
       if (profileByIdError || !profileById) {
         console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
@@ -274,13 +275,9 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       console.log('✅ Found profile by user_id:', profileCheck);
     }
     
-    // Fetch GHL data from ghl_subaccounts table
-    const { data: ghlData, error: ghlError } = await supabase
-      .from('ghl_subaccounts')
-      .select('ghl_location_id, soma_ghl_user_id')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
+    // Fetch GHL data from ghl_subaccounts table  
+    const { data: ghlDataArray } = await ghlSubaccountsApi.getByUserId(data.firm_user_id);
+    const ghlData = Array.isArray(ghlDataArray) ? ghlDataArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
     
     if (ghlData) {
       console.log('✅ Found GHL data:', {
@@ -292,12 +289,8 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
     }
     
     // Check if record exists for UPSERT logic
-    const { data: existingRecord } = await supabase
-      .from('solar_setup')
-      .select('id, created_at')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
+    const { data: existingRecordArray } = await solarSetupApi.getByUserId(data.firm_user_id);
+    const existingRecord = Array.isArray(existingRecordArray) ? existingRecordArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
     
     // Generate UUID for new records
     const recordId = existingRecord?.id || crypto.randomUUID();
@@ -360,14 +353,7 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
     console.log('🔧 Setup JSON configuration:', setupJson);
 
     // Use upsert to insert or update if record already exists
-    const { data: result, error } = await supabase
-      .from('solar_setup')
-      .upsert(insertData, {
-        onConflict: 'firm_user_id,agent_id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
+    const { data: result, error } = await solarSetupApi.upsert(insertData);
 
     if (error) {
       console.error('Supabase solar setup upsert error:', error);
@@ -405,8 +391,6 @@ interface CalendarSetupData {
 
 export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ success: boolean; message: string }> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 Debugging calendar setup save:', {
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id,
@@ -415,21 +399,13 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
     });
     
     // First, let's check if this user exists in profiles table (same logic as other saves)
-    const { data: profileCheck, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('user_id', data.firm_user_id)
-      .single();
+    const { data: profileCheck, error: profileError } = await profilesApi.getByUserId(data.firm_user_id);
     
     if (profileError || !profileCheck) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
-      const { data: profileById, error: profileByIdError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email')
-        .eq('id', data.firm_user_id)
-        .single();
+      const { data: profileById, error: profileByIdError } = await profilesApi.getById(data.firm_user_id);
         
       if (profileByIdError || !profileById) {
         console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
@@ -444,16 +420,8 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
     }
     
     // Fetch GHL data from ghl_subaccounts table
-    const { data: ghlData, error: ghlError } = await supabase
-      .from('ghl_subaccounts')
-      .select('ghl_location_id, soma_ghl_user_id')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
-
-    if (ghlError && ghlError.code !== 'PGRST116') {
-      console.warn('Warning: Could not fetch GHL data:', ghlError);
-    }
+    const { data: ghlDataArray } = await ghlSubaccountsApi.getByUserId(data.firm_user_id);
+    const ghlData = Array.isArray(ghlDataArray) ? ghlDataArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
 
     if (ghlData) {
       console.log('✅ Found GHL data for calendar setup:', ghlData);
@@ -488,14 +456,7 @@ export const saveCalendarSetup = async (data: CalendarSetupData): Promise<{ succ
     console.log('📝 Final calendar setup insert data:', insertData);
 
     // Use upsert to insert or update if record already exists
-    const { data: result, error } = await supabase
-      .from('calendar_setup')
-      .upsert(insertData, {
-        onConflict: 'firm_user_id,agent_id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
+    const { data: result, error } = await calendarSetupApi.upsert(insertData);
 
     if (error) {
       console.error('Supabase calendar setup upsert error:', error);
@@ -532,8 +493,6 @@ interface NotificationPreferencesData {
 
 export const saveNotificationPreferences = async (data: NotificationPreferencesData): Promise<{ success: boolean; message: string }> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 Debugging notification preferences save:', {
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id,
@@ -542,21 +501,13 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
     });
     
     // First, let's check if this user exists in profiles table (same logic as other saves)
-    const { data: profileCheck, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('user_id', data.firm_user_id)
-      .single();
+    const { data: profileCheck, error: profileError } = await profilesApi.getByUserId(data.firm_user_id);
     
     if (profileError || !profileCheck) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
-      const { data: profileById, error: profileByIdError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email')
-        .eq('id', data.firm_user_id)
-        .single();
+      const { data: profileById, error: profileByIdError } = await profilesApi.getById(data.firm_user_id);
         
       if (profileByIdError || !profileById) {
         console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
@@ -571,16 +522,8 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
     }
     
     // Fetch GHL data from ghl_subaccounts table
-    const { data: ghlData, error: ghlError } = await supabase
-      .from('ghl_subaccounts')
-      .select('ghl_location_id, soma_ghl_user_id')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
-
-    if (ghlError && ghlError.code !== 'PGRST116') {
-      console.warn('Warning: Could not fetch GHL data:', ghlError);
-    }
+    const { data: ghlDataArray } = await ghlSubaccountsApi.getByUserId(data.firm_user_id);
+    const ghlData = Array.isArray(ghlDataArray) ? ghlDataArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
 
     if (ghlData) {
       console.log('✅ Found GHL data for notification preferences:', ghlData);
@@ -614,14 +557,7 @@ export const saveNotificationPreferences = async (data: NotificationPreferencesD
     console.log('📝 Final notification preferences insert data:', insertData);
 
     // Use upsert to insert or update if record already exists
-    const { data: result, error } = await supabase
-      .from('notification_preferences')
-      .upsert(insertData, {
-        onConflict: 'firm_user_id,agent_id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
+    const { data: result, error } = await notificationPreferencesApi.upsert(insertData);
 
     if (error) {
       console.error('Supabase notification preferences upsert error:', error);
@@ -744,18 +680,12 @@ export const callN8NWebhook = async (data: N8NWebhookRequest): Promise<N8NWebhoo
 // Get existing website analysis data
 export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getWebsiteAnalysis: API called with userId:', userId);
     console.log('🔍 getWebsiteAnalysis: About to query firm_user_id=', userId, 'agent_id=', agentId);
     
     // Use firm_user_id field for website_analysis table  
-    let { data, error } = await supabase
-      .from('website_analysis')
-      .select('*')
-      .eq('firm_user_id', userId)
-      .eq('agent_id', agentId)
-      .single();
+    const { data: dataArray, error } = await websiteAnalysisApi.getByUserId(userId);
+    const data = Array.isArray(dataArray) ? dataArray.find(item => item.agent_id === agentId) : null;
     
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Error fetching website analysis:', error);
@@ -772,16 +702,10 @@ export const getWebsiteAnalysis = async (userId: string, agentId: string = 'SOL'
 // Get existing business details data
 export const getBusinessDetails = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getBusinessDetails: Using userId directly as firm_user_id:', userId);
     
-    let { data, error } = await supabase
-      .from('business_details')
-      .select('*')
-      .eq('firm_user_id', userId)
-      .eq('agent_id', agentId)
-      .single();
+    const { data: dataArray, error } = await businessDetailsApi.getByUserId(userId);
+    const data = Array.isArray(dataArray) ? dataArray.find(item => item.agent_id === agentId) : null;
       
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching business details:', error);
@@ -798,16 +722,10 @@ export const getBusinessDetails = async (userId: string, agentId: string = 'SOL'
 // Get existing solar setup data
 export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getSolarSetup: Using userId directly as firm_user_id:', userId);
     
-    let { data, error } = await supabase
-      .from('solar_setup')
-      .select('*')
-      .eq('firm_user_id', userId)
-      .eq('agent_id', agentId)
-      .single();
+    const { data: dataArray, error } = await solarSetupApi.getByUserId(userId);
+    const data = Array.isArray(dataArray) ? dataArray.find(item => item.agent_id === agentId) : null;
       
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching solar setup:', error);
@@ -850,16 +768,10 @@ export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Pr
 // Get existing calendar setup data
 export const getCalendarSetup = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getCalendarSetup: Using userId directly as firm_user_id:', userId);
     
-    let { data, error } = await supabase
-      .from('calendar_setup')
-      .select('*')
-      .eq('firm_user_id', userId)
-      .eq('agent_id', agentId)
-      .single();
+    const { data: dataArray, error } = await calendarSetupApi.getByUserId(userId);
+    const data = Array.isArray(dataArray) ? dataArray.find(item => item.agent_id === agentId) : null;
       
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching calendar setup:', error);
@@ -876,16 +788,10 @@ export const getCalendarSetup = async (userId: string, agentId: string = 'SOL'):
 // Get existing notification preferences data
 export const getNotificationPreferences = async (userId: string, agentId: string = 'SOL'): Promise<any> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getNotificationPreferences: Using userId directly as firm_user_id:', userId);
     
-    let { data, error } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('firm_user_id', userId)
-      .eq('agent_id', agentId)
-      .single();
+    const { data: dataArray, error } = await notificationPreferencesApi.getByUserId(userId);
+    const data = Array.isArray(dataArray) ? dataArray.find(item => item.agent_id === agentId) : null;
       
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching notification preferences:', error);
@@ -903,16 +809,10 @@ export const getNotificationPreferences = async (userId: string, agentId: string
 // Get the correct user_id from profiles table using email
 export const getProfileUserId = async (email: string): Promise<string | null> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 getProfileUserId: Looking up user_id for email:', email);
     
     // Get the profile user_id from the email
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('email', email)
-      .single();
+    const { data: profile, error } = await profilesApi.getByEmail(email);
     
     if (error) {
       console.error('❌ getProfileUserId: Error:', error);
@@ -1008,8 +908,6 @@ interface WebsiteAnalysisData {
 
 export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyzeButton?: boolean }): Promise<{ success: boolean; message: string }> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 Debugging website analysis save:', {
       firm_user_id: data.firm_user_id,
       firm_user_id_type: typeof data.firm_user_id,
@@ -1018,21 +916,13 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
     });
     
     // Get firm_id from profiles table - REQUIRED field
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email, company_id')
-      .eq('user_id', data.firm_user_id)
-      .single();
+    const { data: profileData, error: profileError } = await profilesApi.getByUserId(data.firm_user_id);
     
     if (profileError || !profileData) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
-      const { data: profileById, error: profileByIdError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, company_id')
-        .eq('id', data.firm_user_id)
-        .single();
+      const { data: profileById, error: profileByIdError } = await profilesApi.getById(data.firm_user_id);
         
       if (profileByIdError || !profileById) {
         console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
@@ -1053,12 +943,8 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
     }
     
     // Fetch GHL data from ghl_subaccounts table
-    const { data: ghlData, error: ghlError } = await supabase
-      .from('ghl_subaccounts')
-      .select('ghl_location_id, soma_ghl_user_id')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
+    const { data: ghlDataArray } = await ghlSubaccountsApi.getByUserId(data.firm_user_id);
+    const ghlData = Array.isArray(ghlDataArray) ? ghlDataArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
     
     if (ghlData) {
       console.log('✅ Found GHL data for website analysis:', {
@@ -1070,23 +956,20 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
     }
     
     // Check if user has ANY existing website analysis record (not URL-specific)
-    const existingRecord = await supabase
-      .from('website_analysis')
-      .select('id, created_at, website_url')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .eq('firm_id', firm_id)
-      .single();
+    const { data: existingRecordArray } = await websiteAnalysisApi.getByUserId(data.firm_user_id);
+    const existingRecord = Array.isArray(existingRecordArray) ? existingRecordArray.find(item => 
+      item.agent_id === (data.agent_id || 'SOL') && item.firm_id === firm_id
+    ) : null;
     
-    if (existingRecord.data) {
-      console.log(`📝 Found existing record for user. Will update website from "${existingRecord.data.website_url}" to "${data.website_url}"`);
+    if (existingRecord) {
+      console.log(`📝 Found existing record for user. Will update website from "${existingRecord.website_url}" to "${data.website_url}"`);
     } else {
       console.log('🆕 No existing record found. Will create new record.');
     }
     
     // Generate UUID for new records
-    const recordId = existingRecord.data?.id || crypto.randomUUID();
-    const preserveCreatedAt = existingRecord.data?.created_at || new Date().toISOString();
+    const recordId = existingRecord?.id || crypto.randomUUID();
+    const preserveCreatedAt = existingRecord?.created_at || new Date().toISOString();
     
     // Prepare base data for database upsert
     const upsertData: any = {
@@ -1122,14 +1005,7 @@ export const saveWebsiteAnalysis = async (data: WebsiteAnalysisData & { isAnalyz
     console.log('📝 Final upsert data:', upsertData);
 
     // Use upsert - if existing record found, update it; otherwise insert new
-    const { data: result, error } = await supabase
-      .from('website_analysis')
-      .upsert(upsertData, {
-        onConflict: 'firm_user_id,agent_id,website_url,firm_id',  // Match the actual unique constraint
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
+    const { data: result, error } = await websiteAnalysisApi.upsert(upsertData);
 
     if (error) {
       console.error('Supabase upsert error:', error);
@@ -1167,8 +1043,6 @@ interface BusinessDetailsData {
 
 export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ success: boolean; message: string }> => {
   try {
-    const { supabase } = await import('./supabase');
-    
     console.log('🔍 Debugging business details save:', {
       firm_user_id: data.firm_user_id,
       agent_id: data.agent_id,
@@ -1177,21 +1051,13 @@ export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ 
     });
     
     // First, let's check if this user exists in profiles table (same logic as website analysis)
-    const { data: profileCheck, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('user_id', data.firm_user_id)
-      .single();
+    const { data: profileCheck, error: profileError } = await profilesApi.getByUserId(data.firm_user_id);
     
     if (profileError || !profileCheck) {
       console.error('Profile not found for user_id:', data.firm_user_id, profileError);
       
       // Try checking by id instead
-      const { data: profileById, error: profileByIdError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email')
-        .eq('id', data.firm_user_id)
-        .single();
+      const { data: profileById, error: profileByIdError } = await profilesApi.getById(data.firm_user_id);
         
       if (profileByIdError || !profileById) {
         console.error('Profile not found by id either:', data.firm_user_id, profileByIdError);
@@ -1206,12 +1072,8 @@ export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ 
     }
     
     // Fetch GHL data from ghl_subaccounts table
-    const { data: ghlData, error: ghlError } = await supabase
-      .from('ghl_subaccounts')
-      .select('ghl_location_id, soma_ghl_user_id')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
+    const { data: ghlDataArray } = await ghlSubaccountsApi.getByUserId(data.firm_user_id);
+    const ghlData = Array.isArray(ghlDataArray) ? ghlDataArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
     
     if (ghlData) {
       console.log('✅ Found GHL data for business details:', {
@@ -1223,12 +1085,8 @@ export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ 
     }
     
     // Check if record exists for UPSERT logic
-    const { data: existingRecord } = await supabase
-      .from('business_details')
-      .select('id, created_at')
-      .eq('firm_user_id', data.firm_user_id)
-      .eq('agent_id', data.agent_id || 'SOL')
-      .single();
+    const { data: existingRecordArray } = await businessDetailsApi.getByUserId(data.firm_user_id);
+    const existingRecord = Array.isArray(existingRecordArray) ? existingRecordArray.find(item => item.agent_id === (data.agent_id || 'SOL')) : null;
     
     // Generate UUID for new records
     const recordId = existingRecord?.id || crypto.randomUUID();
@@ -1269,14 +1127,7 @@ export const saveBusinessDetails = async (data: BusinessDetailsData): Promise<{ 
     console.log('📝 Final business details insert data:', insertData);
 
     // Use upsert to insert or update if record already exists
-    const { data: result, error } = await supabase
-      .from('business_details')
-      .upsert(insertData, {
-        onConflict: 'firm_user_id,agent_id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
+    const { data: result, error } = await businessDetailsApi.upsert(insertData);
 
     if (error) {
       console.error('Supabase business details upsert error:', error);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, Camera, Save, X, ArrowLeft, User } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
 import { UserAccountDropdown } from '../components/UserAccountDropdown';
+import { profilesApi } from '../lib/supabase-api';
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -178,11 +179,7 @@ export default function AccountSettings() {
       }
       
       // Check if profile exists by id first
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
+      const { data: existingProfile } = await profilesApi.getById(profileId);
         
       console.log('Existing profile check by id:', existingProfile);
       
@@ -190,56 +187,41 @@ export default function AccountSettings() {
       
       if (!existingProfile) {
         // Check if profile exists by email (to avoid duplicate email constraint)
-        const { data: emailProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('email', user?.email || profile?.email)
-          .single();
+        const { data: emailProfile } = await profilesApi.getByEmail(user?.email || profile?.email);
           
         console.log('Existing profile check by email:', emailProfile);
         
         if (emailProfile) {
           // Profile exists with this email, update it instead of creating new one
           console.log('Updating existing profile found by email:', emailProfile.id);
-          updateResult = await supabase
-            .from('profiles')
-            .update({
-              full_name: fullName,
-              profile_avatar_url: newAvatarUrl,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', emailProfile.id)
-            .select();
+          updateResult = await profilesApi.updateById(emailProfile.id, {
+            full_name: fullName,
+            profile_avatar_url: newAvatarUrl,
+            updated_at: new Date().toISOString()
+          });
         } else {
           // Create new profile only if no profile exists with this email
           console.log('Creating new profile for user:', profileId);
-          updateResult = await supabase
-            .from('profiles')
-            .insert({
-              id: profileId,
-              user_id: crypto.randomUUID(),
-              email: user?.email || profile?.email,
-              full_name: fullName,
-              profile_avatar_url: newAvatarUrl,
-              role: 'member',
-              company_id: crypto.randomUUID(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .select();
+          updateResult = await profilesApi.create({
+            id: profileId,
+            user_id: crypto.randomUUID(),
+            email: user?.email || profile?.email,
+            full_name: fullName,
+            profile_avatar_url: newAvatarUrl,
+            role: 'member',
+            company_id: crypto.randomUUID(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
         }
       } else {
         // Update existing profile using id column (same as old design)
         console.log('Updating existing profile for user:', profileId);
-        updateResult = await supabase
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            profile_avatar_url: newAvatarUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', profileId)
-          .select();
+        updateResult = await profilesApi.updateById(profileId, {
+          full_name: fullName,
+          profile_avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString()
+        });
       }
         
       console.log('Supabase operation result:', updateResult);
@@ -265,11 +247,7 @@ export default function AccountSettings() {
       });
       
       // Also verify the update by querying the database again
-      const { data: verifyData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
+      const { data: verifyData } = await profilesApi.getById(profileId);
         
       console.log('Verification query result:', verifyData);
       

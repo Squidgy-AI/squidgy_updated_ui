@@ -325,3 +325,156 @@ export const profilesApi = {
   updateById: (id: string, updateData: any, authToken?: string) =>
     supabaseApi.update('profiles', updateData, { id }, { authToken })
 };
+
+// Calendar Setup API
+export const calendarSetupApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('calendar_setup', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('calendar_setup', '*', { user_id }, { single: true, authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('calendar_setup', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('calendar_setup', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('calendar_setup', data, { authToken })
+};
+
+// Chat History API
+export const chatHistoryApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('chat_history', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('chat_history', '*', { user_id }, { authToken }),
+  
+  getBySessionId: (session_id: string, authToken?: string) => 
+    supabaseApi.select('chat_history', '*', { session_id }, { authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('chat_history', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('chat_history', updateData, { id }, { authToken }),
+    
+  deleteById: (id: string, authToken?: string) =>
+    supabaseApi.delete('chat_history', { id }, { authToken })
+};
+
+// Website Analysis API
+export const websiteAnalysisApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('website_analysis', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('website_analysis', '*', { user_id }, { authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('website_analysis', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('website_analysis', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('website_analysis', data, { authToken }),
+    
+  deleteById: (id: string, authToken?: string) =>
+    supabaseApi.delete('website_analysis', { id }, { authToken })
+};
+
+// Facebook Integrations API
+export const facebookIntegrationsApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('facebook_integrations', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('facebook_integrations', '*', { user_id }, { single: true, authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('facebook_integrations', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('facebook_integrations', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('facebook_integrations', data, { authToken }),
+    
+  deleteById: (id: string, authToken?: string) =>
+    supabaseApi.delete('facebook_integrations', { id }, { authToken })
+};
+
+// GHL Subaccounts API
+export const ghlSubaccountsApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('ghl_subaccounts', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('ghl_subaccounts', '*', { user_id }, { authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('ghl_subaccounts', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('ghl_subaccounts', updateData, { id }, { authToken }),
+    
+  deleteById: (id: string, authToken?: string) =>
+    supabaseApi.delete('ghl_subaccounts', { id }, { authToken })
+};
+
+// Notification Preferences API
+export const notificationPreferencesApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('notification_preferences', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('notification_preferences', '*', { user_id }, { single: true, authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('notification_preferences', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('notification_preferences', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('notification_preferences', data, { authToken })
+};
+
+// Solar Setup API
+export const solarSetupApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('solar_setup', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('solar_setup', '*', { user_id }, { single: true, authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('solar_setup', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('solar_setup', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('solar_setup', data, { authToken })
+};
+
+// Business Details API
+export const businessDetailsApi = {
+  getById: (id: string, authToken?: string) => 
+    supabaseApi.select('business_details', '*', { id }, { single: true, authToken }),
+  
+  getByUserId: (user_id: string, authToken?: string) => 
+    supabaseApi.select('business_details', '*', { user_id }, { single: true, authToken }),
+  
+  create: (data: any, authToken?: string) =>
+    supabaseApi.insert('business_details', data, { authToken }),
+  
+  updateById: (id: string, updateData: any, authToken?: string) =>
+    supabaseApi.update('business_details', updateData, { id }, { authToken }),
+    
+  upsert: (data: any, authToken?: string) =>
+    supabaseApi.upsert('business_details', data, { authToken })
+};
