@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { authService } from '../lib/auth-service';
 import { supabase } from '../lib/supabase';
 import { sessionManager } from '../lib/session-manager';
+import { profilesApi } from '../lib/supabase-api';
 
 // Generate a unique session ID
 const generateSessionId = (): string => {
@@ -90,39 +91,32 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             localStorage.setItem('dev_user_id', devUserId);
           }
           
-          // Try to fetch profile from Supabase first
+          // Try to fetch profile from Supabase first using direct API
           let profileData = null;
           try {
-            const { supabase } = await import('../lib/supabase');
+            console.log('🌐 USER_PROVIDER: Using direct API for dev profile lookup');
             
             // First try by user ID
-            let { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', devUserId)
-              .single();
+            let result = await profilesApi.getById(devUserId);
+            profileData = result.data;
               
-            if (!data) {
+            if (!profileData) {
               // If not found by ID, try by email
-              const result = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('email', devUserEmail)
-                .single();
-              data = result.data;
+              console.log('🌐 USER_PROVIDER: Trying profile lookup by email');
+              result = await profilesApi.getByEmail(devUserEmail);
+              profileData = result.data;
             }
             
-            profileData = data;
-            console.log('UserProvider: Loaded profile from Supabase:', {
-              found_by: data ? 'database' : 'none',
-              profile_id: data?.id,
-              profile_email: data?.email,
-              profile_name: data?.full_name,
+            console.log('✅ USER_PROVIDER: Loaded profile from direct API:', {
+              found_by: profileData ? 'database' : 'none',
+              profile_id: profileData?.id,
+              profile_email: profileData?.email,
+              profile_name: profileData?.full_name,
               lookup_user_id: devUserId,
               lookup_email: devUserEmail
             });
           } catch (error) {
-            console.log('UserProvider: No profile found in Supabase, using defaults:', error);
+            console.log('⚠️ USER_PROVIDER: No profile found in Supabase, using defaults:', error);
           }
           
           console.log('UserProvider: Development mode - setting up dev user');
@@ -139,22 +133,19 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           if (!finalUserId) {
             console.log('🔍 UserProvider Dev: No user_id in profile, doing email lookup for:', devUserEmail);
             try {
-              // Try to get the correct user_id by email lookup
-              const { data: emailLookupData } = await supabase
-                .from('profiles')
-                .select('user_id')
-                .eq('email', devUserEmail)
-                .single();
+              // Try to get the correct user_id by email lookup using direct API
+              console.log('🌐 USER_PROVIDER: Using direct API for user_id lookup by email');
+              const emailLookupResult = await profilesApi.getByEmail(devUserEmail);
               
-              if (emailLookupData?.user_id) {
-                finalUserId = emailLookupData.user_id;
-                console.log('✅ UserProvider Dev: Found user_id by email lookup:', finalUserId);
+              if (emailLookupResult.data?.user_id) {
+                finalUserId = emailLookupResult.data.user_id;
+                console.log('✅ USER_PROVIDER Dev: Found user_id by email lookup:', finalUserId);
               } else {
-                console.log('⚠️ UserProvider Dev: No user_id found, using dev fallback');
+                console.log('⚠️ USER_PROVIDER Dev: No user_id found, using dev fallback');
                 finalUserId = devUserId;
               }
             } catch (error) {
-              console.error('❌ UserProvider Dev: Email lookup failed:', error);
+              console.error('❌ USER_PROVIDER Dev: Email lookup failed:', error);
               finalUserId = devUserId;
             }
           }
@@ -258,31 +249,28 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           // Get the correct user_id from profiles table using email
           let currentUserId = authResult.profile?.user_id;
           
-          // ALWAYS do email lookup to get correct user_id from profiles table
+          // ALWAYS do email lookup to get correct user_id from profiles table using direct API
           if (authResult.user.email) {
-            console.log('UserProvider Prod: Doing email lookup for:', authResult.user.email);
+            console.log('🔧 USER_PROVIDER Prod: Doing email lookup for:', authResult.user.email);
             try {
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('user_id')
-                .eq('email', authResult.user.email)
-                .single();
+              console.log('🌐 USER_PROVIDER: Using direct API for production user_id lookup by email');
+              const profileResult = await profilesApi.getByEmail(authResult.user.email);
               
-              console.log('🔍 UserProvider Prod: Email lookup result:', profileData);
+              console.log('🔍 USER_PROVIDER Prod: Email lookup result:', profileResult.data);
               
-              if (profileData?.user_id) {
-                currentUserId = profileData.user_id;
-                console.log('✅ UserProvider Prod: Using user_id from email lookup:', currentUserId);
+              if (profileResult.data?.user_id) {
+                currentUserId = profileResult.data.user_id;
+                console.log('✅ USER_PROVIDER Prod: Using user_id from email lookup:', currentUserId);
               } else {
-                console.log('⚠️ UserProvider Prod: No user_id found by email, using auth id as fallback');
+                console.log('⚠️ USER_PROVIDER Prod: No user_id found by email, using auth id as fallback');
                 currentUserId = authResult.user.id;
               }
             } catch (error) {
-              console.error('❌ UserProvider Prod: Error in email lookup:', error);
+              console.error('❌ USER_PROVIDER Prod: Error in email lookup:', error);
               currentUserId = authResult.user.id;
             }
           } else {
-            console.log('⚠️ UserProvider Prod: No email, using profile or auth fallback');
+            console.log('⚠️ USER_PROVIDER Prod: No email, using profile or auth fallback');
             currentUserId = currentUserId || authResult.user.id;
           }
           
