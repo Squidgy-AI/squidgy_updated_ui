@@ -332,7 +332,7 @@ export const calendarSetupApi = {
     supabaseApi.select('calendar_setup', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('calendar_setup', '*', { user_id }, { single: true, authToken }),
+    supabaseApi.select('calendar_setup', '*', { firm_user_id: user_id }, { single: true, authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('calendar_setup', data, { authToken }),
@@ -371,7 +371,7 @@ export const websiteAnalysisApi = {
     supabaseApi.select('website_analysis', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('website_analysis', '*', { user_id }, { authToken }),
+    supabaseApi.select('website_analysis', '*', { firm_user_id: user_id }, { authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('website_analysis', data, { authToken }),
@@ -392,7 +392,7 @@ export const facebookIntegrationsApi = {
     supabaseApi.select('facebook_integrations', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('facebook_integrations', '*', { user_id }, { single: true, authToken }),
+    supabaseApi.select('facebook_integrations', '*', { firm_user_id: user_id }, { single: true, authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('facebook_integrations', data, { authToken }),
@@ -413,7 +413,7 @@ export const ghlSubaccountsApi = {
     supabaseApi.select('ghl_subaccounts', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('ghl_subaccounts', '*', { user_id }, { authToken }),
+    supabaseApi.select('ghl_subaccounts', '*', { firm_user_id: user_id }, { authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('ghl_subaccounts', data, { authToken }),
@@ -431,7 +431,7 @@ export const notificationPreferencesApi = {
     supabaseApi.select('notification_preferences', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('notification_preferences', '*', { user_id }, { single: true, authToken }),
+    supabaseApi.select('notification_preferences', '*', { firm_user_id: user_id }, { single: true, authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('notification_preferences', data, { authToken }),
@@ -449,7 +449,7 @@ export const solarSetupApi = {
     supabaseApi.select('solar_setup', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('solar_setup', '*', { user_id }, { single: true, authToken }),
+    supabaseApi.select('solar_setup', '*', { firm_user_id: user_id }, { single: true, authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('solar_setup', data, { authToken }),
@@ -467,7 +467,7 @@ export const businessDetailsApi = {
     supabaseApi.select('business_details', '*', { id }, { single: true, authToken }),
   
   getByUserId: (user_id: string, authToken?: string) => 
-    supabaseApi.select('business_details', '*', { user_id }, { single: true, authToken }),
+    supabaseApi.select('business_details', '*', { firm_user_id: user_id }, { single: true, authToken }),
   
   create: (data: any, authToken?: string) =>
     supabaseApi.insert('business_details', data, { authToken }),
