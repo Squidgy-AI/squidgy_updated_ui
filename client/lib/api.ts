@@ -242,6 +242,7 @@ interface SolarSetupData {
   typical_panel_count: number;
   max_roof_segments: number;
   solar_incentive: number;
+  property_type: string;
   setup_status?: string;
 }
 
@@ -316,7 +317,8 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       financedPurchaseEnabled: data.allow_financed ?? true,
       installationPricePerWatt: data.installation_price || 2,
       installationLifespanYears: data.installation_lifespan || 20,
-      yearlyElectricCostIncreasePercent: (data.yearly_electric_cost_increase || 4) / 100 // Convert percentage to decimal
+      yearlyElectricCostIncreasePercent: (data.yearly_electric_cost_increase || 4) / 100, // Convert percentage to decimal
+      propertyType: data.property_type || 'Residential'
     };
 
     // Prepare data for database insert (keeping both individual columns and setup_json)
@@ -337,6 +339,7 @@ export const saveSolarSetup = async (data: SolarSetupData): Promise<{ success: b
       typical_panel_count: data.typical_panel_count,
       max_roof_segments: data.max_roof_segments,
       solar_incentive: data.solar_incentive,
+      property_type: data.property_type,
       setup_status: data.setup_status || 'completed',
       setup_json: setupJson, // Add the JSON configuration
       created_at: createdAt, // Add creation timestamp
@@ -803,7 +806,8 @@ export const getSolarSetup = async (userId: string, agentId: string = 'SOL'): Pr
         allow_financed: jsonData.financedPurchaseEnabled ?? data.allow_financed,
         installation_price: jsonData.installationPricePerWatt ?? data.installation_price,
         installation_lifespan: jsonData.installationLifespanYears ?? data.installation_lifespan,
-        yearly_electric_cost_increase: jsonData.yearlyElectricCostIncreasePercent ? jsonData.yearlyElectricCostIncreasePercent * 100 : data.yearly_electric_cost_increase // Convert decimal to percentage
+        yearly_electric_cost_increase: jsonData.yearlyElectricCostIncreasePercent ? jsonData.yearlyElectricCostIncreasePercent * 100 : data.yearly_electric_cost_increase, // Convert decimal to percentage
+        property_type: jsonData.propertyType ?? data.property_type
       };
     }
     

@@ -55,6 +55,7 @@ export default function SolarSetup() {
   const [typicalPanelCount, setTypicalPanelCount] = useState(0);
   const [maxRoofSegments, setMaxRoofSegments] = useState(0);
   const [solarIncentive, setSolarIncentive] = useState(0);
+  const [propertyType, setPropertyType] = useState('Residential');
 
   // Load existing data from database on component mount
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function SolarSetup() {
           setTypicalPanelCount(existingData.typical_panel_count || 0);
           setMaxRoofSegments(existingData.max_roof_segments || 0);
           setSolarIncentive(existingData.solar_incentive || 0);
+          setPropertyType(existingData.property_type || 'Residential');
           setDataLoaded(true);
         } else {
           // Set default values if no existing data (all > 0 except Purchase Options)
@@ -89,6 +91,7 @@ export default function SolarSetup() {
           setTypicalPanelCount(40);
           setMaxRoofSegments(4);
           setSolarIncentive(3.0);
+          setPropertyType('Residential');
           setDataLoaded(true);
         }
       }
@@ -145,6 +148,7 @@ export default function SolarSetup() {
         typical_panel_count: typicalPanelCount,
         max_roof_segments: maxRoofSegments,
         solar_incentive: solarIncentive,
+        property_type: propertyType,
         setup_status: 'completed'
       };
 
@@ -438,7 +442,7 @@ export default function SolarSetup() {
             </div>
 
             {/* Solar Incentive */}
-            <div className="mb-8">
+            <div className="mb-6">
               <label className="flex items-center text-sm font-semibold text-text-primary mb-2">
                 Solar incentive
                 <HelpTooltip content="Percentage discount or incentive offered on solar installations." />
@@ -453,6 +457,49 @@ export default function SolarSetup() {
                   className="flex-1 p-3 border border-grey-500 rounded-l-md text-text-primary text-base focus:outline-none focus:ring-2 focus:ring-squidgy-purple focus:border-transparent"
                 />
                 <span className="px-4 py-3 bg-gray-50 border border-l-0 border-grey-500 rounded-r-md text-text-primary">%</span>
+              </div>
+            </div>
+
+            {/* Property Type */}
+            <div className="mb-8">
+              <label className="flex items-center text-sm font-semibold text-text-primary mb-4">
+                Property type
+                <HelpTooltip content="Type of property where the solar installation will be performed." />
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Residential"
+                    checked={propertyType === 'Residential'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Residential</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Commercial"
+                    checked={propertyType === 'Commercial'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Commercial</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Other"
+                    checked={propertyType === 'Other'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Other</span>
+                </label>
               </div>
             </div>
 
