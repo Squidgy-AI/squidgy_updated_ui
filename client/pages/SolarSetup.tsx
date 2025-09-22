@@ -283,6 +283,49 @@ export default function SolarSetup() {
               </div>
             </div>
 
+            {/* Property Type */}
+            <div className="mb-6">
+              <label className="flex items-center text-sm font-semibold text-text-primary mb-4">
+                Property type
+                <HelpTooltip content="Type of property where the solar installation will be performed." />
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Residential"
+                    checked={propertyType === 'Residential'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Residential</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Commercial"
+                    checked={propertyType === 'Commercial'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Commercial</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="propertyType"
+                    value="Other"
+                    checked={propertyType === 'Other'}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
+                  />
+                  <span className="text-text-primary">Other</span>
+                </label>
+              </div>
+            </div>
+
             {/* Purchase Options */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-text-primary mb-4">Purchase options</label>
@@ -442,7 +485,7 @@ export default function SolarSetup() {
             </div>
 
             {/* Solar Incentive */}
-            <div className="mb-6">
+            <div className="mb-8">
               <label className="flex items-center text-sm font-semibold text-text-primary mb-2">
                 Solar incentive
                 <HelpTooltip content="Percentage discount or incentive offered on solar installations." />
@@ -460,48 +503,6 @@ export default function SolarSetup() {
               </div>
             </div>
 
-            {/* Property Type */}
-            <div className="mb-8">
-              <label className="flex items-center text-sm font-semibold text-text-primary mb-4">
-                Property type
-                <HelpTooltip content="Type of property where the solar installation will be performed." />
-              </label>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="propertyType"
-                    value="Residential"
-                    checked={propertyType === 'Residential'}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
-                  />
-                  <span className="text-text-primary">Residential</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="propertyType"
-                    value="Commercial"
-                    checked={propertyType === 'Commercial'}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
-                  />
-                  <span className="text-text-primary">Commercial</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="propertyType"
-                    value="Other"
-                    checked={propertyType === 'Other'}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="w-5 h-5 text-squidgy-purple border-gray-300 focus:ring-squidgy-purple"
-                  />
-                  <span className="text-text-primary">Other</span>
-                </label>
-              </div>
-            </div>
 
             {/* Continue Button */}
             <button 
