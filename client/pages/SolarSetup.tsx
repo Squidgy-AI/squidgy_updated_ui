@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "../components/ChatInterface";
 import { UserAccountDropdown } from "../components/UserAccountDropdown";
 import { SetupStepsSidebar } from "../components/SetupStepsSidebar";
+import NotificationBell from "../components/NotificationBell";
 import { useUser } from "../hooks/useUser";
 import { saveSolarSetup, getSolarSetup } from "../lib/api";
 import { toast } from "sonner";
@@ -184,7 +185,10 @@ export default function SolarSetup() {
             <span className="text-white text-xs font-bold">S</span>
           </div>
           <span className="font-bold text-lg text-text-primary">Squidgy</span>
-          <UserAccountDropdown />
+          <div className="flex items-center gap-3 ml-4">
+            <NotificationBell />
+            <UserAccountDropdown />
+          </div>
         </div>
         <button className="text-squidgy-purple font-bold text-sm px-5 py-3 rounded-button hover:bg-gray-50 transition-colors">
           Close (save draft)
