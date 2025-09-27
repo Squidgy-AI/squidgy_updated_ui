@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-// Notification types
+// Notification types - Updated to match new database schema and webhook payload
 export interface Notification {
   id: string;
   ghl_location_id: string;
@@ -18,6 +18,10 @@ export interface Notification {
   sender_phone?: string;
   sender_email?: string;
   conversation_id?: string;
+  contact_type?: string;        // New: Lead, Customer, Prospect, etc.
+  message_attachment?: string;  // New: URLs to attachments
+  tag?: string;                // New: Tags from GHL
+  agent_message?: string;      // New: Agent responses
   read_status: boolean;
   responded_status: boolean;
   metadata?: any;
@@ -158,6 +162,10 @@ class NotificationsService {
             sender_phone: data.sender_phone,
             sender_email: data.sender_email,
             conversation_id: data.conversation_id,
+            contact_type: data.metadata?.contact_type,
+            message_attachment: data.metadata?.user_message_attachment,
+            tag: data.metadata?.tag,
+            agent_message: data.metadata?.agent_message,
             read_status: false,
             responded_status: false,
             metadata: data.metadata,
