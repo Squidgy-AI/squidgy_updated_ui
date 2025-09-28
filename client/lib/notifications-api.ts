@@ -129,7 +129,7 @@ class NotificationsService {
     
     console.log('Connecting to WebSocket for notifications:', connectionId);
     
-    this.ws = new WebSocket(`${wsUrl}/ws/${connectionId}`);
+    this.ws = new WebSocket(`${wsUrl}/ws/${userId}/${sessionId}`);
 
     this.ws.onopen = () => {
       console.log('WebSocket connected for notifications');
