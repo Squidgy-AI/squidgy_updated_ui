@@ -120,36 +120,53 @@ class NotificationsService {
    */
   connectWebSocket(userId: string, sessionId: string = 'default'): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
+      console.log('✅ WebSocket already connected');
       return;
     }
 
     const wsUrl = BACKEND_URL.replace(/^http/, 'ws');
     const connectionId = `${userId}_${sessionId}`;
+    const fullWsUrl = `${wsUrl}/ws/${userId}/${sessionId}`;
     
-    console.log('Connecting to WebSocket for notifications:', connectionId);
+    console.log('🔌 WEBSOCKET CONNECTION ATTEMPT:');
+    console.log('   Backend URL:', BACKEND_URL);
+    console.log('   WebSocket URL:', fullWsUrl);
+    console.log('   User ID:', userId);
+    console.log('   Session ID:', sessionId);
+    console.log('   Connection ID:', connectionId);
     
-    this.ws = new WebSocket(`${wsUrl}/ws/${userId}/${sessionId}`);
+    this.ws = new WebSocket(fullWsUrl);
 
     this.ws.onopen = () => {
-      console.log('WebSocket connected for notifications');
+      console.log('✅ WEBSOCKET CONNECTED SUCCESSFULLY!');
+      console.log('   Connection state:', this.ws?.readyState);
+      console.log('   Expected connection ID on backend:', connectionId);
       this.reconnectAttempts = 0;
       
       // Send initial connection message
-      this.ws?.send(JSON.stringify({
+      const connectionMessage = {
         type: 'connection',
         userId,
         sessionId,
-      }));
+      };
+      console.log('📤 Sending connection message:', connectionMessage);
+      this.ws?.send(JSON.stringify(connectionMessage));
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('📨 WEBSOCKET MESSAGE RECEIVED:', data);
         
         // Handle notification messages
         if (data.type === 'notification') {
-          console.log('Received real-time notification:', data);
+          console.log('🎉 NOTIFICATION MESSAGE DETECTED!');
+          console.log('   Sender:', data.sender_name);
+          console.log('   Message:', data.message);
+          console.log('   Type:', data.message_type);
+          console.log('   Location ID:', data.ghl_location_id);
+          console.log('   Contact ID:', data.ghl_contact_id);
+          console.log('   Notification ID:', data.notification_id);
           
           // Convert WebSocket message to Notification format
           const notification: Notification = {
@@ -174,22 +191,34 @@ class NotificationsService {
           };
           
           // Notify all listeners
+          console.log('🔔 Notifying', this.listeners.size, 'listeners');
           this.listeners.forEach(listener => listener(notification));
           
           // Show browser notification if permitted
+          console.log('🌐 Triggering browser notification');
           this.showBrowserNotification(notification);
+        } else if (data.type === 'ping') {
+          console.log('💓 Received ping from server');
+        } else {
+          console.log('ℹ️ Other message type:', data.type);
         }
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('❌ Error parsing WebSocket message:', error);
+        console.error('   Raw message:', event.data);
       }
     };
 
     this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('❌ WEBSOCKET ERROR:', error);
+      console.error('   URL:', fullWsUrl);
+      console.error('   Ready state:', this.ws?.readyState);
     };
 
-    this.ws.onclose = () => {
-      console.log('WebSocket disconnected');
+    this.ws.onclose = (event) => {
+      console.log('🔌 WEBSOCKET DISCONNECTED');
+      console.log('   Code:', event.code);
+      console.log('   Reason:', event.reason);
+      console.log('   Clean close:', event.wasClean);
       this.ws = null;
       
       // Attempt to reconnect

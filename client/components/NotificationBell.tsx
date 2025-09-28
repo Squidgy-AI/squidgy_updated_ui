@@ -37,17 +37,28 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
 
   // Setup WebSocket and load initial notifications
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('⚠️ No userId available for NotificationBell');
+      return;
+    }
+
+    console.log('🔧 NOTIFICATION BELL SETUP:');
+    console.log('   User ID:', userId);
 
     // Load initial notifications
+    console.log('📊 Loading initial notifications...');
     loadNotifications();
 
     // Connect to WebSocket for real-time notifications
+    console.log('🔌 Connecting WebSocket for user:', userId);
     notificationsService.connectWebSocket(userId);
 
     // Listen for new notifications
     const unsubscribe = notificationsService.onNotification((notification) => {
-      console.log('New notification received:', notification);
+      console.log('🎉 NOTIFICATION BELL: New notification received!');
+      console.log('   From:', notification.sender_name);
+      console.log('   Message:', notification.message_content);
+      console.log('   Current unread count:', unreadCount);
       
       // Add to notifications list
       setNotifications(prev => [notification, ...prev].slice(0, 50)); // Keep only latest 50
@@ -55,15 +66,18 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
       setHasNewNotification(true);
       
       // Play sound
+      console.log('🔊 Playing notification sound...');
       notificationsService.playNotificationSound();
       
       // Show toast
+      console.log('🍞 Showing toast notification...');
       toast.success(`New message from ${notification.sender_name || 'Unknown'}`, {
         description: notification.message_content.slice(0, 100) + '...',
         duration: 4000,
       });
 
       // Reset animation after a short delay
+      console.log('✨ Setting bell animation...');
       setTimeout(() => setHasNewNotification(false), 2000);
     });
 
