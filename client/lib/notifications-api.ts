@@ -315,11 +315,31 @@ class NotificationsService {
    */
   playNotificationSound(): void {
     try {
-      const audio = new Audio('/notification-sound.mp3'); // Add your sound file
-      audio.volume = 0.5;
-      audio.play().catch(e => console.log('Could not play notification sound:', e));
+      // Create a simple beep sound using Web Audio API as fallback
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800 Hz tone
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+      
+      console.log('✅ Notification sound played successfully');
     } catch (error) {
-      console.log('Error playing notification sound:', error);
+      console.log('❌ Error playing notification sound:', error);
+      // Fallback: try to play a system beep
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYcBjiS2+/XdSUE');
+        audio.play();
+      } catch (fallbackError) {
+        console.log('❌ Fallback sound also failed:', fallbackError);
+      }
     }
   }
 }

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/lib/auth-service";
 import LeftNavigation from "../components/layout/LeftNavigation";
+import NotificationBell from "../components/NotificationBell";
 import { 
   MessageCircle, 
   Home, 
@@ -62,12 +63,7 @@ export default function Index() {
                 <Search className="w-6 h-6 text-gray-500" />
               </Button>
               
-              <div className="relative">
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
-                  <Bell className="w-6 h-6 text-gray-500" />
-                </Button>
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-              </div>
+              <NotificationBell />
               
               <div className="flex items-center gap-3">
                 <div className="text-right">

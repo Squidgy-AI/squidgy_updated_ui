@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useUser } from '../hooks/useUser';
 import { notificationsService } from '../lib/notifications-api';
+import { toast } from 'sonner';
 
 /**
  * Global NotificationBell component that works on all pages
@@ -32,7 +33,17 @@ export default function GlobalNotificationBell() {
       console.log('   Location:', notification.ghl_location_id);
       console.log('   Contact:', notification.ghl_contact_id);
       
-      // Just log for now - UI components can handle their own display
+      // Play notification sound globally
+      console.log('🔊 GLOBAL: Playing notification sound...');
+      notificationsService.playNotificationSound();
+      
+      // Show toast notification globally
+      console.log('🍞 GLOBAL: Showing toast notification...');
+      toast.success(`New message from ${notification.sender_name || 'Unknown'}`, {
+        description: notification.message_content.slice(0, 100) + (notification.message_content.length > 100 ? '...' : ''),
+        duration: 5000,
+      });
+      
       console.log('🔔 Global notification processed');
     });
 
