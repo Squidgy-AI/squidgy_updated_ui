@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { UserProvider } from "./hooks/useUser";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import GlobalNotificationBell from "./components/GlobalNotificationBell";
 import { useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import Index from "./pages/Index";
@@ -109,6 +110,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthHandler />
+          <GlobalNotificationBell />
           <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
